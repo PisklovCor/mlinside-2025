@@ -1,5 +1,6 @@
 package com.cryptoagents.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.concurrent.ConcurrentMapCache;
@@ -16,6 +17,7 @@ import java.util.concurrent.TimeUnit;
  * This configuration sets up different cache regions with appropriate TTL (Time To Live)
  * settings for cryptocurrency data to optimize API calls and respect rate limits.
  */
+@Slf4j
 @Configuration
 @EnableCaching
 public class CacheConfig {
@@ -35,6 +37,8 @@ public class CacheConfig {
      */
     @Bean
     public CacheManager cacheManager() {
+        log.info("🗄️ Configuring cache manager with TTL-enabled caches");
+        
         SimpleCacheManager cacheManager = new SimpleCacheManager();
         
         cacheManager.setCaches(Arrays.asList(
@@ -57,6 +61,7 @@ public class CacheConfig {
             createTTLCache(CRYPTO_SERVICE_STATUS_CACHE, TimeUnit.MINUTES.toMillis(2))
         ));
         
+        log.info("✅ Cache manager configured with {} cache regions", cacheManager.getCacheNames().size());
         return cacheManager;
     }
 
@@ -68,6 +73,7 @@ public class CacheConfig {
      * @return TTL-enabled ConcurrentMapCache
      */
     private TTLConcurrentMapCache createTTLCache(String cacheName, long ttlMillis) {
+        log.debug("Creating TTL cache '{}' with TTL: {}ms", cacheName, ttlMillis);
         return new TTLConcurrentMapCache(cacheName, ttlMillis);
     }
 

@@ -1,5 +1,6 @@
 package com.cryptoagents.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +15,7 @@ import java.time.Duration;
  * This configuration provides pre-configured RestTemplate instances
  * with appropriate timeouts and error handling for cryptocurrency API integration.
  */
+@Slf4j
 @Configuration
 public class RestTemplateConfig {
 
@@ -25,6 +27,7 @@ public class RestTemplateConfig {
      */
     @Bean("coinGeckoRestTemplate")
     public RestTemplate coinGeckoRestTemplate(RestTemplateBuilder builder) {
+        log.info("🌐 Configuring CoinGecko RestTemplate with timeouts: connect=10s, read=30s");
         return builder
                 .rootUri("https://api.coingecko.com/api/v3")
                 .setConnectTimeout(Duration.ofSeconds(10))
@@ -41,6 +44,7 @@ public class RestTemplateConfig {
      */
     @Bean("generalRestTemplate")
     public RestTemplate generalRestTemplate(RestTemplateBuilder builder) {
+        log.info("🌐 Configuring general RestTemplate with timeouts: connect=5s, read=15s");
         return builder
                 .setConnectTimeout(Duration.ofSeconds(5))
                 .setReadTimeout(Duration.ofSeconds(15))

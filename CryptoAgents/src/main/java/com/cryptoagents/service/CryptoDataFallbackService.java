@@ -4,8 +4,7 @@ import com.cryptoagents.model.dto.CryptoCurrency;
 import com.cryptoagents.model.dto.HistoricalData;
 import com.cryptoagents.model.dto.MarketData;
 import com.cryptoagents.model.enums.TimePeriod;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -21,10 +20,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * This service implements various fallback strategies including cached data retrieval,
  * default values, and circuit breaker patterns to ensure system resilience.
  */
+@Slf4j
 @Service
 public class CryptoDataFallbackService {
-
-    private static final Logger logger = LoggerFactory.getLogger(CryptoDataFallbackService.class);
 
     // Circuit breaker configuration
     private static final int FAILURE_THRESHOLD = 5;
@@ -59,7 +57,7 @@ public class CryptoDataFallbackService {
         if (circuitState == CircuitBreakerState.HALF_OPEN) {
             circuitState = CircuitBreakerState.CLOSED;
             halfOpenCalls.set(0);
-            logger.info("Circuit breaker CLOSED - API service recovered");
+            log.info("Circuit breaker CLOSED - API service recovered");
         }
     }
 
@@ -72,7 +70,7 @@ public class CryptoDataFallbackService {
         
         if (failures >= FAILURE_THRESHOLD && circuitState == CircuitBreakerState.CLOSED) {
             circuitState = CircuitBreakerState.OPEN;
-            logger.error("Circuit breaker OPENED - API service appears to be down (failures: {})", failures);
+            log.error("Circuit breaker OPENED - API service appears to be down (failures: {})", failures);
         }
     }
 
@@ -91,7 +89,7 @@ public class CryptoDataFallbackService {
                 if (System.currentTimeMillis() - lastFailureTime.get() > RECOVERY_TIMEOUT_MS) {
                     circuitState = CircuitBreakerState.HALF_OPEN;
                     halfOpenCalls.set(0);
-                    logger.info("Circuit breaker HALF_OPEN - testing service recovery");
+                    log.info("Circuit breaker HALF_OPEN - testing service recovery");
                     return true;
                 }
                 return false;
@@ -105,7 +103,7 @@ public class CryptoDataFallbackService {
                     // Too many calls in half-open state, back to open
                     circuitState = CircuitBreakerState.OPEN;
                     lastFailureTime.set(System.currentTimeMillis());
-                    logger.warn("Circuit breaker back to OPEN - recovery test failed");
+                    log.warn("Circuit breaker back to OPEN - recovery test failed");
                     return false;
                 }
                 
@@ -139,18 +137,18 @@ public class CryptoDataFallbackService {
         // Try emergency cached price first
         BigDecimal emergencyPrice = emergencyPrices.get(normalizedTicker);
         if (emergencyPrice != null) {
-            logger.debug("Returning emergency cached price for {}: ${}", ticker, emergencyPrice);
+            log.debug("Returning emergency cached price for {}: ${}", ticker, emergencyPrice);
             return Optional.of(emergencyPrice);
         }
 
         // Return default prices for major cryptocurrencies (very rough estimates)
         BigDecimal defaultPrice = getDefaultPrice(normalizedTicker);
         if (defaultPrice != null) {
-            logger.warn("Returning default fallback price for {}: ${}", ticker, defaultPrice);
+            log.warn("Returning default fallback price for {}: ${}", ticker, defaultPrice);
             return Optional.of(defaultPrice);
         }
 
-        logger.warn("No fallback price available for ticker: {}", ticker);
+        log.warn("No fallback price available for ticker: {}", ticker);
         return Optional.empty();
     }
 
@@ -170,7 +168,7 @@ public class CryptoDataFallbackService {
         // Try emergency cached market data
         MarketData emergencyData = emergencyMarketData.get(normalizedTicker);
         if (emergencyData != null) {
-            logger.debug("Returning emergency cached market data for {}", ticker);
+            log.debug("Returning emergency cached market data for {}", ticker);
             return Optional.of(emergencyData);
         }
 
@@ -180,11 +178,11 @@ public class CryptoDataFallbackService {
             MarketData fallbackData = new MarketData(ticker.toUpperCase(), 
                 getCryptoName(normalizedTicker), fallbackPrice.get());
             
-            logger.warn("Returning minimal fallback market data for {}", ticker);
+            log.warn("Returning minimal fallback market data for {}", ticker);
             return Optional.of(fallbackData);
         }
 
-        logger.warn("No fallback market data available for ticker: {}", ticker);
+        log.warn("No fallback market data available for ticker: {}", ticker);
         return Optional.empty();
     }
 
@@ -196,7 +194,7 @@ public class CryptoDataFallbackService {
      * @return Empty optional with logged warning
      */
     public Optional<HistoricalData> getFallbackHistoricalData(String ticker, TimePeriod period) {
-        logger.warn("Historical data not available in fallback mode for {} ({})", ticker, period);
+        log.warn("Historical data not available in fallback mode for {} ({})", ticker, period);
         return Optional.empty();
     }
 
@@ -222,11 +220,11 @@ public class CryptoDataFallbackService {
                 fallbackPrice.get()
             );
             
-            logger.warn("Returning minimal fallback crypto info for {}", ticker);
+            log.warn("Returning minimal fallback crypto info for {}", ticker);
             return Optional.of(fallbackCrypto);
         }
 
-        logger.warn("No fallback crypto info available for ticker: {}", ticker);
+        log.warn("No fallback crypto info available for ticker: {}", ticker);
         return Optional.empty();
     }
 
@@ -252,7 +250,7 @@ public class CryptoDataFallbackService {
             }
         }
         
-        logger.warn("Returning fallback supported cryptocurrencies list with {} entries", fallbackList.size());
+        log.warn("Returning fallback supported cryptocurrencies list with {} entries", fallbackList.size());
         return fallbackList;
     }
 
@@ -273,7 +271,7 @@ public class CryptoDataFallbackService {
                 emergencyMarketData.put(normalizedTicker, marketData);
             }
             
-            logger.debug("Stored emergency data for {}: ${}", ticker, price);
+            log.debug("Stored emergency data for {}: ${}", ticker, price);
         }
     }
 

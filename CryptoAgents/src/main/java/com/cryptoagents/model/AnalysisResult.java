@@ -1,6 +1,9 @@
 package com.cryptoagents.model;
 
 import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 /**
@@ -9,6 +12,8 @@ import java.time.LocalDateTime;
  * This class serves as the foundation for specific agent result types
  * and contains common fields shared across all analysis results.
  */
+@Data
+@NoArgsConstructor
 @Entity
 @Table(name = "analysis_results")
 @Inheritance(strategy = InheritanceType.JOINED)
@@ -23,7 +28,7 @@ public abstract class AnalysisResult {
     private String ticker;
     
     @Column(name = "analysis_time", nullable = false)
-    private LocalDateTime analysisTime;
+    private LocalDateTime analysisTime = LocalDateTime.now();
     
     @Column(name = "agent_name", nullable = false, length = 50)
     private String agentName;
@@ -36,7 +41,7 @@ public abstract class AnalysisResult {
     
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private AnalysisStatus status;
+    private AnalysisStatus status = AnalysisStatus.PENDING;
     
     @Column(name = "processing_time_ms")
     private Long processingTimeMs;
@@ -44,89 +49,12 @@ public abstract class AnalysisResult {
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
     
-    // Constructors
-    public AnalysisResult() {
+    // Constructor with basic fields
+    public AnalysisResult(String ticker, String agentName) {
+        this.ticker = ticker;
+        this.agentName = agentName;
         this.analysisTime = LocalDateTime.now();
         this.status = AnalysisStatus.PENDING;
-    }
-    
-    public AnalysisResult(String ticker, String agentName) {
-        this();
-        this.ticker = ticker;
-        this.agentName = agentName;
-    }
-    
-    // Getters and setters
-    public Long getId() {
-        return id;
-    }
-    
-    public void setId(Long id) {
-        this.id = id;
-    }
-    
-    public String getTicker() {
-        return ticker;
-    }
-    
-    public void setTicker(String ticker) {
-        this.ticker = ticker;
-    }
-    
-    public LocalDateTime getAnalysisTime() {
-        return analysisTime;
-    }
-    
-    public void setAnalysisTime(LocalDateTime analysisTime) {
-        this.analysisTime = analysisTime;
-    }
-    
-    public String getAgentName() {
-        return agentName;
-    }
-    
-    public void setAgentName(String agentName) {
-        this.agentName = agentName;
-    }
-    
-    public String getResultSummary() {
-        return resultSummary;
-    }
-    
-    public void setResultSummary(String resultSummary) {
-        this.resultSummary = resultSummary;
-    }
-    
-    public Double getConfidenceScore() {
-        return confidenceScore;
-    }
-    
-    public void setConfidenceScore(Double confidenceScore) {
-        this.confidenceScore = confidenceScore;
-    }
-    
-    public AnalysisStatus getStatus() {
-        return status;
-    }
-    
-    public void setStatus(AnalysisStatus status) {
-        this.status = status;
-    }
-    
-    public Long getProcessingTimeMs() {
-        return processingTimeMs;
-    }
-    
-    public void setProcessingTimeMs(Long processingTimeMs) {
-        this.processingTimeMs = processingTimeMs;
-    }
-    
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-    
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
     }
     
     /**

@@ -2,6 +2,9 @@ package com.cryptoagents.model.dto;
 
 import com.cryptoagents.model.enums.TimePeriod;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -14,6 +17,8 @@ import java.util.List;
  * This class contains time-series data for a cryptocurrency over a specified period,
  * including price points, timestamps, and statistical information.
  */
+@Data
+@NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class HistoricalData {
 
@@ -21,41 +26,43 @@ public class HistoricalData {
     private TimePeriod period;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
-    private List<PricePoint> pricePoints;
-    private LocalDateTime retrievedAt;
+    private List<PricePoint> pricePoints = new ArrayList<>();
+    private LocalDateTime retrievedAt = LocalDateTime.now();
     
-    // Statistical data
+    // Statistical data (calculated, no setters)
+    @Setter(lombok.AccessLevel.NONE)
     private BigDecimal minPrice;
+    @Setter(lombok.AccessLevel.NONE)
     private BigDecimal maxPrice;
+    @Setter(lombok.AccessLevel.NONE)
     private BigDecimal averagePrice;
+    @Setter(lombok.AccessLevel.NONE)
     private BigDecimal startPrice;
+    @Setter(lombok.AccessLevel.NONE)
     private BigDecimal endPrice;
+    @Setter(lombok.AccessLevel.NONE)
     private BigDecimal totalChange;
+    @Setter(lombok.AccessLevel.NONE)
     private BigDecimal totalChangePercentage;
-
-    // Default constructor
-    public HistoricalData() {
-        this.pricePoints = new ArrayList<>();
-        this.retrievedAt = LocalDateTime.now();
-    }
 
     // Constructor with basic fields
     public HistoricalData(String ticker, TimePeriod period) {
-        this();
         this.ticker = ticker;
         this.period = period;
+        this.pricePoints = new ArrayList<>();
+        this.retrievedAt = LocalDateTime.now();
     }
 
     /**
      * Inner class representing a single price point in time.
      */
+    @Data
+    @NoArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class PricePoint {
         private LocalDateTime timestamp;
         private BigDecimal price;
         private BigDecimal volume;
-
-        public PricePoint() {}
 
         public PricePoint(LocalDateTime timestamp, BigDecimal price) {
             this.timestamp = timestamp;
@@ -67,116 +74,12 @@ public class HistoricalData {
             this.price = price;
             this.volume = volume;
         }
-
-        // Getters and Setters
-        public LocalDateTime getTimestamp() {
-            return timestamp;
-        }
-
-        public void setTimestamp(LocalDateTime timestamp) {
-            this.timestamp = timestamp;
-        }
-
-        public BigDecimal getPrice() {
-            return price;
-        }
-
-        public void setPrice(BigDecimal price) {
-            this.price = price;
-        }
-
-        public BigDecimal getVolume() {
-            return volume;
-        }
-
-        public void setVolume(BigDecimal volume) {
-            this.volume = volume;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("PricePoint{timestamp=%s, price=%s, volume=%s}", 
-                    timestamp, price, volume);
-        }
     }
 
-    // Getters and Setters
-
-    public String getTicker() {
-        return ticker;
-    }
-
-    public void setTicker(String ticker) {
-        this.ticker = ticker;
-    }
-
-    public TimePeriod getPeriod() {
-        return period;
-    }
-
-    public void setPeriod(TimePeriod period) {
-        this.period = period;
-    }
-
-    public LocalDateTime getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(LocalDateTime startDate) {
-        this.startDate = startDate;
-    }
-
-    public LocalDateTime getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(LocalDateTime endDate) {
-        this.endDate = endDate;
-    }
-
-    public List<PricePoint> getPricePoints() {
-        return pricePoints;
-    }
-
+    // Custom setter for pricePoints to trigger statistics calculation
     public void setPricePoints(List<PricePoint> pricePoints) {
         this.pricePoints = pricePoints;
         calculateStatistics();
-    }
-
-    public LocalDateTime getRetrievedAt() {
-        return retrievedAt;
-    }
-
-    public void setRetrievedAt(LocalDateTime retrievedAt) {
-        this.retrievedAt = retrievedAt;
-    }
-
-    public BigDecimal getMinPrice() {
-        return minPrice;
-    }
-
-    public BigDecimal getMaxPrice() {
-        return maxPrice;
-    }
-
-    public BigDecimal getAveragePrice() {
-        return averagePrice;
-    }
-
-    public BigDecimal getStartPrice() {
-        return startPrice;
-    }
-
-    public BigDecimal getEndPrice() {
-        return endPrice;
-    }
-
-    public BigDecimal getTotalChange() {
-        return totalChange;
-    }
-
-    public BigDecimal getTotalChangePercentage() {
-        return totalChangePercentage;
     }
 
     // Utility methods
@@ -263,11 +166,5 @@ public class HistoricalData {
      */
     public boolean isPriceIncreasing() {
         return totalChangePercentage != null && totalChangePercentage.compareTo(BigDecimal.ZERO) > 0;
-    }
-
-    @Override
-    public String toString() {
-        return String.format("HistoricalData{ticker='%s', period=%s, dataPoints=%d, change=%s%%}", 
-                ticker, period, getDataPointsCount(), totalChangePercentage);
     }
 } 

@@ -7,6 +7,9 @@ package com.cryptoagents.agent;
  * - Analyst: Technical analysis
  * - Risk Manager: Risk assessment
  * - Trader: Trading recommendations
+ * 
+ * Note: Implementations should use SLF4J logger:
+ * private static final Logger logger = LoggerFactory.getLogger(AgentImplementation.class);
  */
 public interface Agent {
     

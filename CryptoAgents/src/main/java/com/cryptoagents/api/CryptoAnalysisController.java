@@ -1,5 +1,6 @@
 package com.cryptoagents.api;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -8,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
  * 
  * This controller will handle HTTP requests for crypto analysis operations.
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/crypto")
 public class CryptoAnalysisController {

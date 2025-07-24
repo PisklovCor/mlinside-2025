@@ -1,5 +1,6 @@
 package com.cryptoagents;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
@@ -13,11 +14,19 @@ import org.springframework.cache.annotation.EnableCaching;
  * @author CryptoAgents Team
  * @version 1.0.0
  */
+@Slf4j
 @SpringBootApplication
 @EnableCaching
 public class CryptoAgentsApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(CryptoAgentsApplication.class, args);
+        log.info("🚀 Starting CryptoAgents application...");
+        try {
+            SpringApplication.run(CryptoAgentsApplication.class, args);
+            log.info("✅ CryptoAgents application started successfully");
+        } catch (Exception e) {
+            log.error("❌ Failed to start CryptoAgents application: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 } 

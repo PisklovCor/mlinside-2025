@@ -2,6 +2,8 @@ package com.cryptoagents.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -12,6 +14,8 @@ import java.time.LocalDateTime;
  * This class contains detailed market information including prices, volumes,
  * market capitalization, and various trading metrics.
  */
+@Data
+@NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MarketData {
 
@@ -98,245 +102,14 @@ public class MarketData {
     @JsonProperty("last_updated")
     private String lastUpdated;
 
-    private LocalDateTime retrievedAt;
-
-    // Default constructor
-    public MarketData() {
-        this.retrievedAt = LocalDateTime.now();
-    }
+    private LocalDateTime retrievedAt = LocalDateTime.now();
 
     // Constructor with basic fields
     public MarketData(String ticker, String name, BigDecimal currentPrice) {
-        this();
         this.ticker = ticker;
         this.name = name;
         this.currentPrice = currentPrice;
-    }
-
-    // Getters and Setters
-
-    public String getTicker() {
-        return ticker;
-    }
-
-    public void setTicker(String ticker) {
-        this.ticker = ticker;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public BigDecimal getCurrentPrice() {
-        return currentPrice;
-    }
-
-    public void setCurrentPrice(BigDecimal currentPrice) {
-        this.currentPrice = currentPrice;
-    }
-
-    public BigDecimal getPriceChange24h() {
-        return priceChange24h;
-    }
-
-    public void setPriceChange24h(BigDecimal priceChange24h) {
-        this.priceChange24h = priceChange24h;
-    }
-
-    public BigDecimal getPriceChangePercentage24h() {
-        return priceChangePercentage24h;
-    }
-
-    public void setPriceChangePercentage24h(BigDecimal priceChangePercentage24h) {
-        this.priceChangePercentage24h = priceChangePercentage24h;
-    }
-
-    public BigDecimal getPriceChangePercentage7d() {
-        return priceChangePercentage7d;
-    }
-
-    public void setPriceChangePercentage7d(BigDecimal priceChangePercentage7d) {
-        this.priceChangePercentage7d = priceChangePercentage7d;
-    }
-
-    public BigDecimal getPriceChangePercentage30d() {
-        return priceChangePercentage30d;
-    }
-
-    public void setPriceChangePercentage30d(BigDecimal priceChangePercentage30d) {
-        this.priceChangePercentage30d = priceChangePercentage30d;
-    }
-
-    public BigDecimal getMarketCap() {
-        return marketCap;
-    }
-
-    public void setMarketCap(BigDecimal marketCap) {
-        this.marketCap = marketCap;
-    }
-
-    public Integer getMarketCapRank() {
-        return marketCapRank;
-    }
-
-    public void setMarketCapRank(Integer marketCapRank) {
-        this.marketCapRank = marketCapRank;
-    }
-
-    public BigDecimal getMarketCapChange24h() {
-        return marketCapChange24h;
-    }
-
-    public void setMarketCapChange24h(BigDecimal marketCapChange24h) {
-        this.marketCapChange24h = marketCapChange24h;
-    }
-
-    public BigDecimal getMarketCapChangePercentage24h() {
-        return marketCapChangePercentage24h;
-    }
-
-    public void setMarketCapChangePercentage24h(BigDecimal marketCapChangePercentage24h) {
-        this.marketCapChangePercentage24h = marketCapChangePercentage24h;
-    }
-
-    public BigDecimal getTotalVolume() {
-        return totalVolume;
-    }
-
-    public void setTotalVolume(BigDecimal totalVolume) {
-        this.totalVolume = totalVolume;
-    }
-
-    public BigDecimal getVolumeChange24h() {
-        return volumeChange24h;
-    }
-
-    public void setVolumeChange24h(BigDecimal volumeChange24h) {
-        this.volumeChange24h = volumeChange24h;
-    }
-
-    public BigDecimal getHigh24h() {
-        return high24h;
-    }
-
-    public void setHigh24h(BigDecimal high24h) {
-        this.high24h = high24h;
-    }
-
-    public BigDecimal getLow24h() {
-        return low24h;
-    }
-
-    public void setLow24h(BigDecimal low24h) {
-        this.low24h = low24h;
-    }
-
-    public BigDecimal getAllTimeHigh() {
-        return allTimeHigh;
-    }
-
-    public void setAllTimeHigh(BigDecimal allTimeHigh) {
-        this.allTimeHigh = allTimeHigh;
-    }
-
-    public BigDecimal getAthChangePercentage() {
-        return athChangePercentage;
-    }
-
-    public void setAthChangePercentage(BigDecimal athChangePercentage) {
-        this.athChangePercentage = athChangePercentage;
-    }
-
-    public String getAthDate() {
-        return athDate;
-    }
-
-    public void setAthDate(String athDate) {
-        this.athDate = athDate;
-    }
-
-    public BigDecimal getAllTimeLow() {
-        return allTimeLow;
-    }
-
-    public void setAllTimeLow(BigDecimal allTimeLow) {
-        this.allTimeLow = allTimeLow;
-    }
-
-    public BigDecimal getAtlChangePercentage() {
-        return atlChangePercentage;
-    }
-
-    public void setAtlChangePercentage(BigDecimal atlChangePercentage) {
-        this.atlChangePercentage = atlChangePercentage;
-    }
-
-    public String getAtlDate() {
-        return atlDate;
-    }
-
-    public void setAtlDate(String atlDate) {
-        this.atlDate = atlDate;
-    }
-
-    public BigDecimal getCirculatingSupply() {
-        return circulatingSupply;
-    }
-
-    public void setCirculatingSupply(BigDecimal circulatingSupply) {
-        this.circulatingSupply = circulatingSupply;
-    }
-
-    public BigDecimal getTotalSupply() {
-        return totalSupply;
-    }
-
-    public void setTotalSupply(BigDecimal totalSupply) {
-        this.totalSupply = totalSupply;
-    }
-
-    public BigDecimal getMaxSupply() {
-        return maxSupply;
-    }
-
-    public void setMaxSupply(BigDecimal maxSupply) {
-        this.maxSupply = maxSupply;
-    }
-
-    public BigDecimal getFullyDilutedValuation() {
-        return fullyDilutedValuation;
-    }
-
-    public void setFullyDilutedValuation(BigDecimal fullyDilutedValuation) {
-        this.fullyDilutedValuation = fullyDilutedValuation;
-    }
-
-    public String getLastUpdated() {
-        return lastUpdated;
-    }
-
-    public void setLastUpdated(String lastUpdated) {
-        this.lastUpdated = lastUpdated;
-    }
-
-    public LocalDateTime getRetrievedAt() {
-        return retrievedAt;
-    }
-
-    public void setRetrievedAt(LocalDateTime retrievedAt) {
-        this.retrievedAt = retrievedAt;
+        this.retrievedAt = LocalDateTime.now();
     }
 
     // Utility methods
@@ -415,24 +188,5 @@ public class MarketData {
                                   .multiply(BigDecimal.valueOf(100));
         }
         return null;
-    }
-
-    @Override
-    public String toString() {
-        return String.format("MarketData{ticker='%s', name='%s', price=%s, marketCap=%s, rank=%d}", 
-                ticker, name, currentPrice, marketCap, marketCapRank);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof MarketData)) return false;
-        MarketData that = (MarketData) o;
-        return ticker != null ? ticker.equals(that.ticker) : that.ticker == null;
-    }
-
-    @Override
-    public int hashCode() {
-        return ticker != null ? ticker.hashCode() : 0;
     }
 } 

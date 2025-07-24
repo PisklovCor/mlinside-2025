@@ -1,20 +1,19 @@
 package com.cryptoagents.service.impl;
 
+import com.cryptoagents.config.CacheConfig;
 import com.cryptoagents.model.dto.CryptoCurrency;
 import com.cryptoagents.model.dto.HistoricalData;
 import com.cryptoagents.model.dto.MarketData;
 import com.cryptoagents.model.enums.TimePeriod;
-import com.cryptoagents.service.CryptoDataService;
 import com.cryptoagents.service.CryptoDataFallbackService;
-import com.cryptoagents.config.CacheConfig;
+import com.cryptoagents.service.CryptoDataService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -31,15 +30,14 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Implementation of CryptoDataService that integrates with CoinGecko API.
+ * CoinGecko API implementation for cryptocurrency data retrieval.
  * 
  * This service provides real-time and historical cryptocurrency data
- * from CoinGecko's public API with error handling and basic rate limiting.
+ * from the CoinGecko API with fallback mechanisms and circuit breaker pattern.
  */
+@Slf4j
 @Service
 public class CoinGeckoDataService implements CryptoDataService {
-
-    private static final Logger logger = LoggerFactory.getLogger(CoinGeckoDataService.class);
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -65,13 +63,13 @@ public class CoinGeckoDataService implements CryptoDataService {
             
             // Check circuit breaker
             if (!fallbackService.isCallAllowed()) {
-                logger.debug("Circuit breaker is OPEN, using fallback for getCurrentPrice: {}", ticker);
+                log.debug("Circuit breaker is OPEN, using fallback for getCurrentPrice: {}", ticker);
                 return fallbackService.getFallbackPrice(ticker);
             }
             
             String coinId = getCoinIdFromTicker(ticker);
             if (coinId == null) {
-                logger.warn("Ticker '{}' not found in supported cryptocurrencies", ticker);
+                log.warn("Ticker '{}' not found in supported cryptocurrencies", ticker);
                 return fallbackService.getFallbackPrice(ticker);
             }
 
@@ -90,33 +88,33 @@ public class CoinGeckoDataService implements CryptoDataService {
                     fallbackService.recordSuccess();
                     fallbackService.storeEmergencyData(ticker, price, null);
                     
-                    logger.debug("Retrieved current price for {}: ${}", ticker, price);
+                    log.debug("Retrieved current price for {}: ${}", ticker, price);
                     return Optional.of(price);
                 }
             }
             
-            logger.warn("No price data found for ticker: {}", ticker);
+            log.warn("No price data found for ticker: {}", ticker);
             return fallbackService.getFallbackPrice(ticker);
             
         } catch (HttpClientErrorException e) {
             fallbackService.recordFailure();
             if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-                logger.error("Rate limit exceeded for getCurrentPrice: {}", ticker);
+                log.error("Rate limit exceeded for getCurrentPrice: {}", ticker);
             } else {
-                logger.error("Client error getting current price for {}: {}", ticker, e.getMessage());
+                log.error("Client error getting current price for {}: {}", ticker, e.getMessage());
             }
             return fallbackService.getFallbackPrice(ticker);
         } catch (HttpServerErrorException e) {
             fallbackService.recordFailure();
-            logger.error("Server error getting current price for {}: {}", ticker, e.getMessage());
+            log.error("Server error getting current price for {}: {}", ticker, e.getMessage());
             return fallbackService.getFallbackPrice(ticker);
         } catch (ResourceAccessException e) {
             fallbackService.recordFailure();
-            logger.error("Network error getting current price for {}: {}", ticker, e.getMessage());
+            log.error("Network error getting current price for {}: {}", ticker, e.getMessage());
             return fallbackService.getFallbackPrice(ticker);
         } catch (Exception e) {
             fallbackService.recordFailure();
-            logger.error("Unexpected error getting current price for {}: {}", ticker, e.getMessage(), e);
+            log.error("Unexpected error getting current price for {}: {}", ticker, e.getMessage(), e);
             return fallbackService.getFallbackPrice(ticker);
         }
     }
@@ -130,13 +128,13 @@ public class CoinGeckoDataService implements CryptoDataService {
             
             // Check circuit breaker
             if (!fallbackService.isCallAllowed()) {
-                logger.debug("Circuit breaker is OPEN, using fallback for getHistoricalData: {}", ticker);
+                log.debug("Circuit breaker is OPEN, using fallback for getHistoricalData: {}", ticker);
                 return fallbackService.getFallbackHistoricalData(ticker, period);
             }
             
             String coinId = getCoinIdFromTicker(ticker);
             if (coinId == null) {
-                logger.warn("Ticker '{}' not found in supported cryptocurrencies", ticker);
+                log.warn("Ticker '{}' not found in supported cryptocurrencies", ticker);
                 return fallbackService.getFallbackHistoricalData(ticker, period);
             }
 
@@ -170,37 +168,37 @@ public class CoinGeckoDataService implements CryptoDataService {
                     // Record success
                     fallbackService.recordSuccess();
                     
-                    logger.debug("Retrieved historical data for {} ({}): {} points", 
+                    log.debug("Retrieved historical data for {} ({}): {} points", 
                         ticker, period, historicalData.getDataPointsCount());
                     return Optional.of(historicalData);
                 }
             }
             
-            logger.warn("No historical data found for ticker: {} (period: {})", ticker, period);
+            log.warn("No historical data found for ticker: {} (period: {})", ticker, period);
             return fallbackService.getFallbackHistoricalData(ticker, period);
             
         } catch (HttpClientErrorException e) {
             fallbackService.recordFailure();
             if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-                logger.error("Rate limit exceeded for getHistoricalData: {} ({})", ticker, period);
+                log.error("Rate limit exceeded for getHistoricalData: {} ({})", ticker, period);
             } else {
-                logger.error("Client error getting historical data for {} ({}): {}", 
+                log.error("Client error getting historical data for {} ({}): {}", 
                     ticker, period, e.getMessage());
             }
             return fallbackService.getFallbackHistoricalData(ticker, period);
         } catch (HttpServerErrorException e) {
             fallbackService.recordFailure();
-            logger.error("Server error getting historical data for {} ({}): {}", 
+            log.error("Server error getting historical data for {} ({}): {}", 
                 ticker, period, e.getMessage());
             return fallbackService.getFallbackHistoricalData(ticker, period);
         } catch (ResourceAccessException e) {
             fallbackService.recordFailure();
-            logger.error("Network error getting historical data for {} ({}): {}", 
+            log.error("Network error getting historical data for {} ({}): {}", 
                 ticker, period, e.getMessage());
             return fallbackService.getFallbackHistoricalData(ticker, period);
         } catch (Exception e) {
             fallbackService.recordFailure();
-            logger.error("Unexpected error getting historical data for {} ({}): {}", 
+            log.error("Unexpected error getting historical data for {} ({}): {}", 
                 ticker, period, e.getMessage(), e);
             return fallbackService.getFallbackHistoricalData(ticker, period);
         }
@@ -214,13 +212,13 @@ public class CoinGeckoDataService implements CryptoDataService {
             
             // Check circuit breaker
             if (!fallbackService.isCallAllowed()) {
-                logger.debug("Circuit breaker is OPEN, using fallback for getMarketData: {}", ticker);
+                log.debug("Circuit breaker is OPEN, using fallback for getMarketData: {}", ticker);
                 return fallbackService.getFallbackMarketData(ticker);
             }
             
             String coinId = getCoinIdFromTicker(ticker);
             if (coinId == null) {
-                logger.warn("Ticker '{}' not found in supported cryptocurrencies", ticker);
+                log.warn("Ticker '{}' not found in supported cryptocurrencies", ticker);
                 return fallbackService.getFallbackMarketData(ticker);
             }
 
@@ -241,34 +239,34 @@ public class CoinGeckoDataService implements CryptoDataService {
                     fallbackService.recordSuccess();
                     fallbackService.storeEmergencyData(ticker, marketData.getCurrentPrice(), marketData);
                     
-                    logger.debug("Retrieved market data for {}: {} (rank: {})", 
+                    log.debug("Retrieved market data for {}: {} (rank: {})", 
                         ticker, marketData.getCurrentPrice(), marketData.getMarketCapRank());
                     return Optional.of(marketData);
                 }
             }
             
-            logger.warn("No market data found for ticker: {}", ticker);
+            log.warn("No market data found for ticker: {}", ticker);
             return fallbackService.getFallbackMarketData(ticker);
             
         } catch (HttpClientErrorException e) {
             fallbackService.recordFailure();
             if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-                logger.error("Rate limit exceeded for getMarketData: {}", ticker);
+                log.error("Rate limit exceeded for getMarketData: {}", ticker);
             } else {
-                logger.error("Client error getting market data for {}: {}", ticker, e.getMessage());
+                log.error("Client error getting market data for {}: {}", ticker, e.getMessage());
             }
             return fallbackService.getFallbackMarketData(ticker);
         } catch (HttpServerErrorException e) {
             fallbackService.recordFailure();
-            logger.error("Server error getting market data for {}: {}", ticker, e.getMessage());
+            log.error("Server error getting market data for {}: {}", ticker, e.getMessage());
             return fallbackService.getFallbackMarketData(ticker);
         } catch (ResourceAccessException e) {
             fallbackService.recordFailure();
-            logger.error("Network error getting market data for {}: {}", ticker, e.getMessage());
+            log.error("Network error getting market data for {}: {}", ticker, e.getMessage());
             return fallbackService.getFallbackMarketData(ticker);
         } catch (Exception e) {
             fallbackService.recordFailure();
-            logger.error("Unexpected error getting market data for {}: {}", ticker, e.getMessage(), e);
+            log.error("Unexpected error getting market data for {}: {}", ticker, e.getMessage(), e);
             return fallbackService.getFallbackMarketData(ticker);
         }
     }
@@ -281,13 +279,13 @@ public class CoinGeckoDataService implements CryptoDataService {
             
             // Check circuit breaker
             if (!fallbackService.isCallAllowed()) {
-                logger.debug("Circuit breaker is OPEN, using fallback for getCryptoInfo: {}", ticker);
+                log.debug("Circuit breaker is OPEN, using fallback for getCryptoInfo: {}", ticker);
                 return fallbackService.getFallbackCryptoInfo(ticker);
             }
             
             String coinId = getCoinIdFromTicker(ticker);
             if (coinId == null) {
-                logger.warn("Ticker '{}' not found in supported cryptocurrencies", ticker);
+                log.warn("Ticker '{}' not found in supported cryptocurrencies", ticker);
                 return fallbackService.getFallbackCryptoInfo(ticker);
             }
 
@@ -325,32 +323,32 @@ public class CoinGeckoDataService implements CryptoDataService {
                 // Record success
                 fallbackService.recordSuccess();
                 
-                logger.debug("Retrieved crypto info for {}: {}", ticker, crypto.getName());
+                log.debug("Retrieved crypto info for {}: {}", ticker, crypto.getName());
                 return Optional.of(crypto);
             }
             
-            logger.warn("No crypto info found for ticker: {}", ticker);
+            log.warn("No crypto info found for ticker: {}", ticker);
             return fallbackService.getFallbackCryptoInfo(ticker);
             
         } catch (HttpClientErrorException e) {
             fallbackService.recordFailure();
             if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-                logger.error("Rate limit exceeded for getCryptoInfo: {}", ticker);
+                log.error("Rate limit exceeded for getCryptoInfo: {}", ticker);
             } else {
-                logger.error("Client error getting crypto info for {}: {}", ticker, e.getMessage());
+                log.error("Client error getting crypto info for {}: {}", ticker, e.getMessage());
             }
             return fallbackService.getFallbackCryptoInfo(ticker);
         } catch (HttpServerErrorException e) {
             fallbackService.recordFailure();
-            logger.error("Server error getting crypto info for {}: {}", ticker, e.getMessage());
+            log.error("Server error getting crypto info for {}: {}", ticker, e.getMessage());
             return fallbackService.getFallbackCryptoInfo(ticker);
         } catch (ResourceAccessException e) {
             fallbackService.recordFailure();
-            logger.error("Network error getting crypto info for {}: {}", ticker, e.getMessage());
+            log.error("Network error getting crypto info for {}: {}", ticker, e.getMessage());
             return fallbackService.getFallbackCryptoInfo(ticker);
         } catch (Exception e) {
             fallbackService.recordFailure();
-            logger.error("Unexpected error getting crypto info for {}: {}", ticker, e.getMessage(), e);
+            log.error("Unexpected error getting crypto info for {}: {}", ticker, e.getMessage(), e);
             return fallbackService.getFallbackCryptoInfo(ticker);
         }
     }
@@ -361,7 +359,7 @@ public class CoinGeckoDataService implements CryptoDataService {
         try {
             // Check circuit breaker
             if (!fallbackService.isCallAllowed()) {
-                logger.debug("Circuit breaker is OPEN, using fallback for getSupportedCryptocurrencies");
+                log.debug("Circuit breaker is OPEN, using fallback for getSupportedCryptocurrencies");
                 return fallbackService.getFallbackSupportedCryptocurrencies();
             }
             
@@ -379,32 +377,32 @@ public class CoinGeckoDataService implements CryptoDataService {
                 // Record success
                 fallbackService.recordSuccess();
                 
-                logger.debug("Retrieved {} supported cryptocurrencies", cryptocurrencies.size());
+                log.debug("Retrieved {} supported cryptocurrencies", cryptocurrencies.size());
                 return cryptocurrencies;
             }
             
-            logger.warn("Failed to retrieve supported cryptocurrencies");
+            log.warn("Failed to retrieve supported cryptocurrencies");
             return fallbackService.getFallbackSupportedCryptocurrencies();
             
         } catch (HttpClientErrorException e) {
             fallbackService.recordFailure();
             if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-                logger.error("Rate limit exceeded for getSupportedCryptocurrencies");
+                log.error("Rate limit exceeded for getSupportedCryptocurrencies");
             } else {
-                logger.error("Client error getting supported cryptocurrencies: {}", e.getMessage());
+                log.error("Client error getting supported cryptocurrencies: {}", e.getMessage());
             }
             return fallbackService.getFallbackSupportedCryptocurrencies();
         } catch (HttpServerErrorException e) {
             fallbackService.recordFailure();
-            logger.error("Server error getting supported cryptocurrencies: {}", e.getMessage());
+            log.error("Server error getting supported cryptocurrencies: {}", e.getMessage());
             return fallbackService.getFallbackSupportedCryptocurrencies();
         } catch (ResourceAccessException e) {
             fallbackService.recordFailure();
-            logger.error("Network error getting supported cryptocurrencies: {}", e.getMessage());
+            log.error("Network error getting supported cryptocurrencies: {}", e.getMessage());
             return fallbackService.getFallbackSupportedCryptocurrencies();
         } catch (Exception e) {
             fallbackService.recordFailure();
-            logger.error("Unexpected error getting supported cryptocurrencies: {}", e.getMessage(), e);
+            log.error("Unexpected error getting supported cryptocurrencies: {}", e.getMessage(), e);
             return fallbackService.getFallbackSupportedCryptocurrencies();
         }
     }
@@ -415,7 +413,7 @@ public class CoinGeckoDataService implements CryptoDataService {
         try {
             // Check circuit breaker state - if it's open, service is considered unavailable
             if (!fallbackService.isCallAllowed()) {
-                logger.debug("Circuit breaker is OPEN, service considered unavailable");
+                log.debug("Circuit breaker is OPEN, service considered unavailable");
                 return false;
             }
             
@@ -429,24 +427,24 @@ public class CoinGeckoDataService implements CryptoDataService {
                 fallbackService.recordFailure();
             }
             
-            logger.debug("CoinGecko service availability check: {}", available);
+            log.debug("CoinGecko service availability check: {}", available);
             return available;
             
         } catch (HttpClientErrorException e) {
             fallbackService.recordFailure();
-            logger.warn("CoinGecko service availability check failed (client error): {}", e.getMessage());
+            log.warn("CoinGecko service availability check failed (client error): {}", e.getMessage());
             return false;
         } catch (HttpServerErrorException e) {
             fallbackService.recordFailure();
-            logger.warn("CoinGecko service availability check failed (server error): {}", e.getMessage());
+            log.warn("CoinGecko service availability check failed (server error): {}", e.getMessage());
             return false;
         } catch (ResourceAccessException e) {
             fallbackService.recordFailure();
-            logger.warn("CoinGecko service availability check failed (network error): {}", e.getMessage());
+            log.warn("CoinGecko service availability check failed (network error): {}", e.getMessage());
             return false;
         } catch (Exception e) {
             fallbackService.recordFailure();
-            logger.warn("CoinGecko service availability check failed (unexpected error): {}", e.getMessage());
+            log.warn("CoinGecko service availability check failed (unexpected error): {}", e.getMessage());
             return false;
         }
     }
@@ -474,7 +472,7 @@ public class CoinGeckoDataService implements CryptoDataService {
             return isSupported;
             
         } catch (Exception e) {
-            logger.warn("Error checking ticker support for {}: {}", ticker, e.getMessage());
+            log.warn("Error checking ticker support for {}: {}", ticker, e.getMessage());
             // Fallback to checking only our local mapping
             return tickerToIdMapping.containsKey(ticker.toLowerCase());
         }
@@ -503,7 +501,7 @@ public class CoinGeckoDataService implements CryptoDataService {
         if (lastMappingUpdate == null || 
             LocalDateTime.now().isAfter(lastMappingUpdate.plusHours(MAPPING_CACHE_DURATION_HOURS))) {
             
-            logger.debug("Updating ticker to coin ID mapping");
+            log.debug("Updating ticker to coin ID mapping");
             getSupportedCryptocurrencies(); // This will update the mapping
         }
     }
@@ -518,7 +516,7 @@ public class CoinGeckoDataService implements CryptoDataService {
         }
         
         lastMappingUpdate = LocalDateTime.now();
-        logger.debug("Updated ticker mapping with {} cryptocurrencies", tickerToIdMapping.size());
+        log.debug("Updated ticker mapping with {} cryptocurrencies", tickerToIdMapping.size());
     }
 
     // Cache management methods
@@ -529,7 +527,7 @@ public class CoinGeckoDataService implements CryptoDataService {
      */
     @CacheEvict(value = CacheConfig.CRYPTO_PRICE_CACHE, allEntries = true)
     public void evictAllPriceCache() {
-        logger.info("Evicted all entries from price cache");
+        log.info("Evicted all entries from price cache");
     }
 
     /**
@@ -539,7 +537,7 @@ public class CoinGeckoDataService implements CryptoDataService {
      */
     @CacheEvict(value = CacheConfig.CRYPTO_PRICE_CACHE, key = "#ticker.toLowerCase()")
     public void evictPriceCache(String ticker) {
-        logger.debug("Evicted price cache for ticker: {}", ticker);
+        log.debug("Evicted price cache for ticker: {}", ticker);
     }
 
     /**
@@ -547,7 +545,7 @@ public class CoinGeckoDataService implements CryptoDataService {
      */
     @CacheEvict(value = CacheConfig.CRYPTO_MARKET_DATA_CACHE, allEntries = true)
     public void evictAllMarketDataCache() {
-        logger.info("Evicted all entries from market data cache");
+        log.info("Evicted all entries from market data cache");
     }
 
     /**
@@ -557,7 +555,7 @@ public class CoinGeckoDataService implements CryptoDataService {
      */
     @CacheEvict(value = CacheConfig.CRYPTO_MARKET_DATA_CACHE, key = "#ticker.toLowerCase()")
     public void evictMarketDataCache(String ticker) {
-        logger.debug("Evicted market data cache for ticker: {}", ticker);
+        log.debug("Evicted market data cache for ticker: {}", ticker);
     }
 
     /**
@@ -565,7 +563,7 @@ public class CoinGeckoDataService implements CryptoDataService {
      */
     @CacheEvict(value = CacheConfig.CRYPTO_HISTORICAL_DATA_CACHE, allEntries = true)
     public void evictAllHistoricalDataCache() {
-        logger.info("Evicted all entries from historical data cache");
+        log.info("Evicted all entries from historical data cache");
     }
 
     /**
@@ -576,7 +574,7 @@ public class CoinGeckoDataService implements CryptoDataService {
      */
     @CacheEvict(value = CacheConfig.CRYPTO_HISTORICAL_DATA_CACHE, key = "#ticker.toLowerCase() + '_' + #period.name()")
     public void evictHistoricalDataCache(String ticker, TimePeriod period) {
-        logger.debug("Evicted historical data cache for ticker: {} (period: {})", ticker, period);
+        log.debug("Evicted historical data cache for ticker: {} (period: {})", ticker, period);
     }
 
     /**
@@ -592,7 +590,7 @@ public class CoinGeckoDataService implements CryptoDataService {
         CacheConfig.CRYPTO_SERVICE_STATUS_CACHE
     }, allEntries = true)
     public void evictAllCaches() {
-        logger.warn("Evicted ALL caches - all subsequent requests will hit the external API");
+        log.warn("Evicted ALL caches - all subsequent requests will hit the external API");
     }
 
     /**
@@ -600,7 +598,7 @@ public class CoinGeckoDataService implements CryptoDataService {
      * This method can be called at application startup or scheduled intervals.
      */
     public void warmupCache() {
-        logger.info("Starting cache warmup...");
+        log.info("Starting cache warmup...");
         
         // Popular cryptocurrencies to warm up
         String[] popularTickers = {"BTC", "ETH", "BNB", "ADA", "DOT", "SOL", "MATIC", "AVAX"};
@@ -615,10 +613,10 @@ public class CoinGeckoDataService implements CryptoDataService {
                 Thread.sleep(100);
                 
             } catch (Exception e) {
-                logger.warn("Failed to warm up cache for ticker {}: {}", ticker, e.getMessage());
+                log.warn("Failed to warm up cache for ticker {}: {}", ticker, e.getMessage());
             }
         }
         
-        logger.info("Cache warmup completed for {} tickers", popularTickers.length);
+        log.info("Cache warmup completed for {} tickers", popularTickers.length);
     }
 } 

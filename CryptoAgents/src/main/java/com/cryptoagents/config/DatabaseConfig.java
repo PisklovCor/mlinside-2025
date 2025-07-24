@@ -1,7 +1,7 @@
 package com.cryptoagents.config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -16,17 +16,19 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 /**
- * Database configuration class for PostgreSQL connection management.
- * Handles connection validation and database-specific settings.
+ * Database configuration class for PostgreSQL setup and validation.
+ * 
+ * This configuration validates database connectivity, logs database information,
+ * and provides environment-specific settings for development and production.
  */
+@Slf4j
 @Configuration
 public class DatabaseConfig {
-
-    private static final Logger logger = LoggerFactory.getLogger(DatabaseConfig.class);
 
     /**
      * Database connection validator that runs on startup.
      */
+    @Slf4j
     @Component
     public static class DatabaseConnectionValidator implements CommandLineRunner {
 
@@ -43,17 +45,17 @@ public class DatabaseConfig {
         }
 
         private void validateDatabaseConnection() {
-            logger.info("Validating database connection...");
+            log.info("Validating database connection...");
             
             try (Connection connection = dataSource.getConnection()) {
                 if (connection.isValid(5)) {
-                    logger.info("✅ Database connection is valid");
+                    log.info("✅ Database connection is valid");
                 } else {
-                    logger.error("❌ Database connection validation failed");
+                    log.error("❌ Database connection validation failed");
                     throw new RuntimeException("Database connection is not valid");
                 }
             } catch (SQLException e) {
-                logger.error("❌ Failed to validate database connection: {}", e.getMessage());
+                log.error("❌ Failed to validate database connection: {}", e.getMessage());
                 throw new RuntimeException("Could not establish database connection", e);
             }
         }
@@ -61,14 +63,14 @@ public class DatabaseConfig {
         private void logDatabaseInfo() {
             try {
                 String version = jdbcTemplate.queryForObject("SELECT version()", String.class);
-                logger.info("Connected to database: {}", version);
+                log.info("Connected to database: {}", version);
                 
                 // Verify required database exists
                 String currentDatabase = jdbcTemplate.queryForObject("SELECT current_database()", String.class);
-                logger.info("Current database: {}", currentDatabase);
+                log.info("Current database: {}", currentDatabase);
                 
             } catch (Exception e) {
-                logger.warn("Could not retrieve database information: {}", e.getMessage());
+                log.warn("Could not retrieve database information: {}", e.getMessage());
             }
         }
     }
@@ -76,6 +78,7 @@ public class DatabaseConfig {
     /**
      * Database properties configuration for environment-specific settings.
      */
+    @Data
     @Component
     @ConfigurationProperties(prefix = "crypto.database")
     public static class DatabaseProperties {
@@ -84,55 +87,21 @@ public class DatabaseConfig {
         private int minConnections = 5;
         private long connectionTimeout = 30000;
         private boolean enableMetrics = false;
-
-        // Getters and setters
-        public int getMaxConnections() {
-            return maxConnections;
-        }
-
-        public void setMaxConnections(int maxConnections) {
-            this.maxConnections = maxConnections;
-        }
-
-        public int getMinConnections() {
-            return minConnections;
-        }
-
-        public void setMinConnections(int minConnections) {
-            this.minConnections = minConnections;
-        }
-
-        public long getConnectionTimeout() {
-            return connectionTimeout;
-        }
-
-        public void setConnectionTimeout(long connectionTimeout) {
-            this.connectionTimeout = connectionTimeout;
-        }
-
-        public boolean isEnableMetrics() {
-            return enableMetrics;
-        }
-
-        public void setEnableMetrics(boolean enableMetrics) {
-            this.enableMetrics = enableMetrics;
-        }
     }
 
     /**
      * Development profile specific configuration.
      */
+    @Slf4j
     @Configuration
     @Profile("dev")
     public static class DevelopmentDatabaseConfig {
-        
-        private static final Logger logger = LoggerFactory.getLogger(DevelopmentDatabaseConfig.class);
 
         @Bean
         public CommandLineRunner devDatabaseSetup() {
             return args -> {
-                logger.info("🔧 Development database configuration loaded");
-                logger.info("📊 SQL logging is enabled in development mode");
+                log.info("🔧 Development database configuration loaded");
+                log.info("📊 SQL logging is enabled in development mode");
             };
         }
     }
@@ -140,17 +109,16 @@ public class DatabaseConfig {
     /**
      * Production profile specific configuration.
      */
+    @Slf4j
     @Configuration
     @Profile("prod")
     public static class ProductionDatabaseConfig {
-        
-        private static final Logger logger = LoggerFactory.getLogger(ProductionDatabaseConfig.class);
 
         @Bean
         public CommandLineRunner prodDatabaseSetup() {
             return args -> {
-                logger.info("🚀 Production database configuration loaded");
-                logger.info("🔒 Enhanced security and performance settings applied");
+                log.info("🚀 Production database configuration loaded");
+                log.info("🔒 Enhanced security and performance settings applied");
             };
         }
     }
