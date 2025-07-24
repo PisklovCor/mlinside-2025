@@ -1,0 +1,138 @@
+-- CryptoAgents Database Schema Migration V1
+-- This migration creates the initial database schema for the multi-agent crypto analysis system
+
+-- Create the base analysis_results table using JOINED inheritance strategy
+CREATE TABLE IF NOT EXISTS analysis_results (
+    id BIGSERIAL PRIMARY KEY,
+    dtype VARCHAR(31) NOT NULL, -- Discriminator column for JOINED inheritance
+    ticker VARCHAR(10) NOT NULL,
+    analysis_time TIMESTAMP NOT NULL,
+    agent_name VARCHAR(50) NOT NULL,
+    result_summary TEXT,
+    confidence_score DOUBLE PRECISION,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    processing_time_ms BIGINT,
+    error_message TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create the analyst_reports table (inherits from analysis_results)
+CREATE TABLE IF NOT EXISTS analyst_reports (
+    id BIGINT PRIMARY KEY REFERENCES analysis_results(id) ON DELETE CASCADE,
+    market_trend VARCHAR(20),
+    technical_indicators TEXT,
+    support_level DECIMAL(19,8),
+    resistance_level DECIMAL(19,8),
+    current_price DECIMAL(19,8),
+    price_target DECIMAL(19,8),
+    signal_strength VARCHAR(20),
+    volume_analysis TEXT,
+    momentum_indicators TEXT,
+    pattern_recognition TEXT,
+    time_horizon_days INTEGER
+);
+
+-- Create the risk_manager_reports table (inherits from analysis_results)
+CREATE TABLE IF NOT EXISTS risk_manager_reports (
+    id BIGINT PRIMARY KEY REFERENCES analysis_results(id) ON DELETE CASCADE,
+    risk_level VARCHAR(20) NOT NULL,
+    risk_score DOUBLE PRECISION,
+    volatility_score DOUBLE PRECISION,
+    value_at_risk DECIMAL(19,8),
+    max_drawdown DECIMAL(19,8),
+    liquidity_risk VARCHAR(20),
+    market_cap_risk VARCHAR(20),
+    regulatory_risk VARCHAR(20),
+    technical_risk VARCHAR(20),
+    concentration_risk VARCHAR(20),
+    beta_coefficient DECIMAL(19,8),
+    sharpe_ratio DECIMAL(19,8),
+    recommended_position_size DECIMAL(19,8),
+    stop_loss_level DECIMAL(19,8),
+    correlation_analysis TEXT,
+    risk_mitigation_strategies TEXT,
+    stress_test_results TEXT
+);
+
+-- Create the trader_reports table (inherits from analysis_results)
+CREATE TABLE IF NOT EXISTS trader_reports (
+    id BIGINT PRIMARY KEY REFERENCES analysis_results(id) ON DELETE CASCADE,
+    action_recommendation VARCHAR(20) NOT NULL,
+    entry_price DECIMAL(19,8),
+    exit_price DECIMAL(19,8),
+    stop_loss DECIMAL(19,8),
+    take_profit DECIMAL(19,8),
+    position_size DECIMAL(19,8),
+    risk_reward_ratio DECIMAL(19,8),
+    portfolio_allocation DECIMAL(19,8),
+    slippage_tolerance DECIMAL(19,8),
+    order_type VARCHAR(20),
+    time_in_force VARCHAR(20),
+    execution_deadline TIMESTAMP,
+    execution_strategy TEXT,
+    market_timing TEXT,
+    trading_rationale TEXT,
+    alternative_scenarios TEXT,
+    holding_period_days INTEGER,
+    urgency_level INTEGER,
+    expected_return DECIMAL(19,8)
+);
+
+-- Create indexes for better query performance
+CREATE INDEX IF NOT EXISTS idx_analysis_results_ticker ON analysis_results(ticker);
+CREATE INDEX IF NOT EXISTS idx_analysis_results_analysis_time ON analysis_results(analysis_time);
+CREATE INDEX IF NOT EXISTS idx_analysis_results_agent_name ON analysis_results(agent_name);
+CREATE INDEX IF NOT EXISTS idx_analysis_results_status ON analysis_results(status);
+CREATE INDEX IF NOT EXISTS idx_analysis_results_confidence_score ON analysis_results(confidence_score);
+CREATE INDEX IF NOT EXISTS idx_analysis_results_ticker_time ON analysis_results(ticker, analysis_time);
+
+-- Analyst reports indexes
+CREATE INDEX IF NOT EXISTS idx_analyst_reports_market_trend ON analyst_reports(market_trend);
+CREATE INDEX IF NOT EXISTS idx_analyst_reports_signal_strength ON analyst_reports(signal_strength);
+CREATE INDEX IF NOT EXISTS idx_analyst_reports_current_price ON analyst_reports(current_price);
+CREATE INDEX IF NOT EXISTS idx_analyst_reports_price_target ON analyst_reports(price_target);
+
+-- Risk manager reports indexes
+CREATE INDEX IF NOT EXISTS idx_risk_manager_reports_risk_level ON risk_manager_reports(risk_level);
+CREATE INDEX IF NOT EXISTS idx_risk_manager_reports_risk_score ON risk_manager_reports(risk_score);
+CREATE INDEX IF NOT EXISTS idx_risk_manager_reports_volatility_score ON risk_manager_reports(volatility_score);
+
+-- Trader reports indexes
+CREATE INDEX IF NOT EXISTS idx_trader_reports_action_recommendation ON trader_reports(action_recommendation);
+CREATE INDEX IF NOT EXISTS idx_trader_reports_order_type ON trader_reports(order_type);
+CREATE INDEX IF NOT EXISTS idx_trader_reports_execution_deadline ON trader_reports(execution_deadline);
+CREATE INDEX IF NOT EXISTS idx_trader_reports_entry_price ON trader_reports(entry_price);
+
+-- Note: PostgreSQL functions and triggers would be here in production
+-- For H2 compatibility in tests, we manage updated_at manually in the application
+
+-- Insert some reference data for enum-like values
+-- This helps with data validation and provides examples
+
+-- Analysis status reference
+COMMENT ON COLUMN analysis_results.status IS 'Valid values: PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED';
+
+-- Market trend reference
+COMMENT ON COLUMN analyst_reports.market_trend IS 'Valid values: BULLISH, BEARISH, SIDEWAYS, VOLATILE, UNCERTAIN';
+
+-- Signal strength reference
+COMMENT ON COLUMN analyst_reports.signal_strength IS 'Valid values: VERY_WEAK, WEAK, MODERATE, STRONG, VERY_STRONG';
+
+-- Risk level reference
+COMMENT ON COLUMN risk_manager_reports.risk_level IS 'Valid values: VERY_LOW, LOW, MODERATE, HIGH, VERY_HIGH, EXTREME';
+
+-- Trading action reference
+COMMENT ON COLUMN trader_reports.action_recommendation IS 'Valid values: BUY, SELL, HOLD, STRONG_BUY, STRONG_SELL';
+
+-- Order type reference
+COMMENT ON COLUMN trader_reports.order_type IS 'Valid values: MARKET, LIMIT, STOP, STOP_LIMIT, TRAILING_STOP';
+
+-- Time in force reference
+COMMENT ON COLUMN trader_reports.time_in_force IS 'Valid values: DAY, GTC, IOC, FOK, GTD';
+
+-- Add table comments for documentation
+COMMENT ON TABLE analysis_results IS 'Base table for all analysis results using JOINED inheritance strategy';
+COMMENT ON TABLE analyst_reports IS 'Technical analysis reports generated by the Analyst Agent';
+COMMENT ON TABLE risk_manager_reports IS 'Risk assessment reports generated by the Risk Manager Agent';
+COMMENT ON TABLE trader_reports IS 'Trading recommendations generated by the Trader Agent'; 
