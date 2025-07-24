@@ -1,0 +1,624 @@
+package com.cryptoagents.service.impl;
+
+import com.cryptoagents.model.dto.CryptoCurrency;
+import com.cryptoagents.model.dto.HistoricalData;
+import com.cryptoagents.model.dto.MarketData;
+import com.cryptoagents.model.enums.TimePeriod;
+import com.cryptoagents.service.CryptoDataService;
+import com.cryptoagents.service.CryptoDataFallbackService;
+import com.cryptoagents.config.CacheConfig;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestTemplate;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Implementation of CryptoDataService that integrates with CoinGecko API.
+ * 
+ * This service provides real-time and historical cryptocurrency data
+ * from CoinGecko's public API with error handling and basic rate limiting.
+ */
+@Service
+public class CoinGeckoDataService implements CryptoDataService {
+
+    private static final Logger logger = LoggerFactory.getLogger(CoinGeckoDataService.class);
+
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+    private final CryptoDataFallbackService fallbackService;
+    
+    // Simple in-memory cache for supported cryptocurrencies
+    private final Map<String, String> tickerToIdMapping = new ConcurrentHashMap<>();
+    private volatile LocalDateTime lastMappingUpdate = null;
+    private static final long MAPPING_CACHE_DURATION_HOURS = 24;
+
+    public CoinGeckoDataService(@Qualifier("coinGeckoRestTemplate") RestTemplate restTemplate,
+                                CryptoDataFallbackService fallbackService) {
+        this.restTemplate = restTemplate;
+        this.objectMapper = new ObjectMapper();
+        this.fallbackService = fallbackService;
+    }
+
+    @Override
+    @Cacheable(value = CacheConfig.CRYPTO_PRICE_CACHE, key = "#ticker.toLowerCase()", unless = "#result.isEmpty()")
+    public Optional<BigDecimal> getCurrentPrice(String ticker) {
+        try {
+            validateTicker(ticker);
+            
+            // Check circuit breaker
+            if (!fallbackService.isCallAllowed()) {
+                logger.debug("Circuit breaker is OPEN, using fallback for getCurrentPrice: {}", ticker);
+                return fallbackService.getFallbackPrice(ticker);
+            }
+            
+            String coinId = getCoinIdFromTicker(ticker);
+            if (coinId == null) {
+                logger.warn("Ticker '{}' not found in supported cryptocurrencies", ticker);
+                return fallbackService.getFallbackPrice(ticker);
+            }
+
+            String url = "/simple/price?ids={coinId}&vs_currencies=usd";
+            
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class, coinId);
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                JsonNode jsonNode = objectMapper.readTree(response.getBody());
+                JsonNode priceNode = jsonNode.path(coinId).path("usd");
+                
+                if (!priceNode.isMissingNode()) {
+                    BigDecimal price = priceNode.decimalValue();
+                    
+                    // Record success and store emergency data
+                    fallbackService.recordSuccess();
+                    fallbackService.storeEmergencyData(ticker, price, null);
+                    
+                    logger.debug("Retrieved current price for {}: ${}", ticker, price);
+                    return Optional.of(price);
+                }
+            }
+            
+            logger.warn("No price data found for ticker: {}", ticker);
+            return fallbackService.getFallbackPrice(ticker);
+            
+        } catch (HttpClientErrorException e) {
+            fallbackService.recordFailure();
+            if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                logger.error("Rate limit exceeded for getCurrentPrice: {}", ticker);
+            } else {
+                logger.error("Client error getting current price for {}: {}", ticker, e.getMessage());
+            }
+            return fallbackService.getFallbackPrice(ticker);
+        } catch (HttpServerErrorException e) {
+            fallbackService.recordFailure();
+            logger.error("Server error getting current price for {}: {}", ticker, e.getMessage());
+            return fallbackService.getFallbackPrice(ticker);
+        } catch (ResourceAccessException e) {
+            fallbackService.recordFailure();
+            logger.error("Network error getting current price for {}: {}", ticker, e.getMessage());
+            return fallbackService.getFallbackPrice(ticker);
+        } catch (Exception e) {
+            fallbackService.recordFailure();
+            logger.error("Unexpected error getting current price for {}: {}", ticker, e.getMessage(), e);
+            return fallbackService.getFallbackPrice(ticker);
+        }
+    }
+
+    @Override
+    @Cacheable(value = CacheConfig.CRYPTO_HISTORICAL_DATA_CACHE, key = "#ticker.toLowerCase() + '_' + #period.name()", unless = "#result.isEmpty()")
+    public Optional<HistoricalData> getHistoricalData(String ticker, TimePeriod period) {
+        try {
+            validateTicker(ticker);
+            validateTimePeriod(period);
+            
+            // Check circuit breaker
+            if (!fallbackService.isCallAllowed()) {
+                logger.debug("Circuit breaker is OPEN, using fallback for getHistoricalData: {}", ticker);
+                return fallbackService.getFallbackHistoricalData(ticker, period);
+            }
+            
+            String coinId = getCoinIdFromTicker(ticker);
+            if (coinId == null) {
+                logger.warn("Ticker '{}' not found in supported cryptocurrencies", ticker);
+                return fallbackService.getFallbackHistoricalData(ticker, period);
+            }
+
+            String url = "/coins/{coinId}/market_chart?vs_currency=usd&days={days}";
+            
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                url, String.class, coinId, period.getApiValue());
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                JsonNode jsonNode = objectMapper.readTree(response.getBody());
+                
+                HistoricalData historicalData = new HistoricalData(ticker, period);
+                
+                JsonNode pricesNode = jsonNode.path("prices");
+                if (pricesNode.isArray()) {
+                    for (JsonNode pricePoint : pricesNode) {
+                        if (pricePoint.isArray() && pricePoint.size() >= 2) {
+                            long timestamp = pricePoint.get(0).asLong();
+                            BigDecimal price = pricePoint.get(1).decimalValue();
+                            
+                            LocalDateTime dateTime = LocalDateTime.ofInstant(
+                                Instant.ofEpochMilli(timestamp), ZoneId.systemDefault());
+                            
+                            historicalData.addPricePoint(
+                                new HistoricalData.PricePoint(dateTime, price));
+                        }
+                    }
+                }
+                
+                if (historicalData.hasValidData()) {
+                    // Record success
+                    fallbackService.recordSuccess();
+                    
+                    logger.debug("Retrieved historical data for {} ({}): {} points", 
+                        ticker, period, historicalData.getDataPointsCount());
+                    return Optional.of(historicalData);
+                }
+            }
+            
+            logger.warn("No historical data found for ticker: {} (period: {})", ticker, period);
+            return fallbackService.getFallbackHistoricalData(ticker, period);
+            
+        } catch (HttpClientErrorException e) {
+            fallbackService.recordFailure();
+            if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                logger.error("Rate limit exceeded for getHistoricalData: {} ({})", ticker, period);
+            } else {
+                logger.error("Client error getting historical data for {} ({}): {}", 
+                    ticker, period, e.getMessage());
+            }
+            return fallbackService.getFallbackHistoricalData(ticker, period);
+        } catch (HttpServerErrorException e) {
+            fallbackService.recordFailure();
+            logger.error("Server error getting historical data for {} ({}): {}", 
+                ticker, period, e.getMessage());
+            return fallbackService.getFallbackHistoricalData(ticker, period);
+        } catch (ResourceAccessException e) {
+            fallbackService.recordFailure();
+            logger.error("Network error getting historical data for {} ({}): {}", 
+                ticker, period, e.getMessage());
+            return fallbackService.getFallbackHistoricalData(ticker, period);
+        } catch (Exception e) {
+            fallbackService.recordFailure();
+            logger.error("Unexpected error getting historical data for {} ({}): {}", 
+                ticker, period, e.getMessage(), e);
+            return fallbackService.getFallbackHistoricalData(ticker, period);
+        }
+    }
+
+    @Override
+    @Cacheable(value = CacheConfig.CRYPTO_MARKET_DATA_CACHE, key = "#ticker.toLowerCase()", unless = "#result.isEmpty()")
+    public Optional<MarketData> getMarketData(String ticker) {
+        try {
+            validateTicker(ticker);
+            
+            // Check circuit breaker
+            if (!fallbackService.isCallAllowed()) {
+                logger.debug("Circuit breaker is OPEN, using fallback for getMarketData: {}", ticker);
+                return fallbackService.getFallbackMarketData(ticker);
+            }
+            
+            String coinId = getCoinIdFromTicker(ticker);
+            if (coinId == null) {
+                logger.warn("Ticker '{}' not found in supported cryptocurrencies", ticker);
+                return fallbackService.getFallbackMarketData(ticker);
+            }
+
+            String url = "/coins/markets?vs_currency=usd&ids={coinId}&order=market_cap_desc" +
+                        "&per_page=1&page=1&sparkline=false&price_change_percentage=24h,7d,30d";
+            
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class, coinId);
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                List<MarketData> marketDataList = objectMapper.readValue(
+                    response.getBody(), new TypeReference<List<MarketData>>() {});
+                
+                if (!marketDataList.isEmpty()) {
+                    MarketData marketData = marketDataList.get(0);
+                    marketData.setTicker(ticker.toUpperCase());
+                    
+                    // Record success and store emergency data
+                    fallbackService.recordSuccess();
+                    fallbackService.storeEmergencyData(ticker, marketData.getCurrentPrice(), marketData);
+                    
+                    logger.debug("Retrieved market data for {}: {} (rank: {})", 
+                        ticker, marketData.getCurrentPrice(), marketData.getMarketCapRank());
+                    return Optional.of(marketData);
+                }
+            }
+            
+            logger.warn("No market data found for ticker: {}", ticker);
+            return fallbackService.getFallbackMarketData(ticker);
+            
+        } catch (HttpClientErrorException e) {
+            fallbackService.recordFailure();
+            if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                logger.error("Rate limit exceeded for getMarketData: {}", ticker);
+            } else {
+                logger.error("Client error getting market data for {}: {}", ticker, e.getMessage());
+            }
+            return fallbackService.getFallbackMarketData(ticker);
+        } catch (HttpServerErrorException e) {
+            fallbackService.recordFailure();
+            logger.error("Server error getting market data for {}: {}", ticker, e.getMessage());
+            return fallbackService.getFallbackMarketData(ticker);
+        } catch (ResourceAccessException e) {
+            fallbackService.recordFailure();
+            logger.error("Network error getting market data for {}: {}", ticker, e.getMessage());
+            return fallbackService.getFallbackMarketData(ticker);
+        } catch (Exception e) {
+            fallbackService.recordFailure();
+            logger.error("Unexpected error getting market data for {}: {}", ticker, e.getMessage(), e);
+            return fallbackService.getFallbackMarketData(ticker);
+        }
+    }
+
+    @Override
+    @Cacheable(value = CacheConfig.CRYPTO_INFO_CACHE, key = "#ticker.toLowerCase()", unless = "#result.isEmpty()")
+    public Optional<CryptoCurrency> getCryptoInfo(String ticker) {
+        try {
+            validateTicker(ticker);
+            
+            // Check circuit breaker
+            if (!fallbackService.isCallAllowed()) {
+                logger.debug("Circuit breaker is OPEN, using fallback for getCryptoInfo: {}", ticker);
+                return fallbackService.getFallbackCryptoInfo(ticker);
+            }
+            
+            String coinId = getCoinIdFromTicker(ticker);
+            if (coinId == null) {
+                logger.warn("Ticker '{}' not found in supported cryptocurrencies", ticker);
+                return fallbackService.getFallbackCryptoInfo(ticker);
+            }
+
+            String url = "/coins/{coinId}?localization=false&tickers=false&market_data=true" +
+                        "&community_data=false&developer_data=false&sparkline=false";
+            
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class, coinId);
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                JsonNode jsonNode = objectMapper.readTree(response.getBody());
+                
+                CryptoCurrency crypto = new CryptoCurrency();
+                crypto.setId(jsonNode.path("id").asText());
+                crypto.setSymbol(jsonNode.path("symbol").asText().toUpperCase());
+                crypto.setName(jsonNode.path("name").asText());
+                
+                JsonNode marketData = jsonNode.path("market_data");
+                if (!marketData.isMissingNode()) {
+                    JsonNode currentPrice = marketData.path("current_price").path("usd");
+                    if (!currentPrice.isMissingNode()) {
+                        crypto.setCurrentPrice(currentPrice.decimalValue());
+                    }
+                    
+                    JsonNode marketCap = marketData.path("market_cap").path("usd");
+                    if (!marketCap.isMissingNode()) {
+                        crypto.setMarketCap(marketCap.decimalValue());
+                    }
+                    
+                    JsonNode marketCapRank = marketData.path("market_cap_rank");
+                    if (!marketCapRank.isMissingNode()) {
+                        crypto.setMarketCapRank(marketCapRank.asInt());
+                    }
+                }
+                
+                // Record success
+                fallbackService.recordSuccess();
+                
+                logger.debug("Retrieved crypto info for {}: {}", ticker, crypto.getName());
+                return Optional.of(crypto);
+            }
+            
+            logger.warn("No crypto info found for ticker: {}", ticker);
+            return fallbackService.getFallbackCryptoInfo(ticker);
+            
+        } catch (HttpClientErrorException e) {
+            fallbackService.recordFailure();
+            if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                logger.error("Rate limit exceeded for getCryptoInfo: {}", ticker);
+            } else {
+                logger.error("Client error getting crypto info for {}: {}", ticker, e.getMessage());
+            }
+            return fallbackService.getFallbackCryptoInfo(ticker);
+        } catch (HttpServerErrorException e) {
+            fallbackService.recordFailure();
+            logger.error("Server error getting crypto info for {}: {}", ticker, e.getMessage());
+            return fallbackService.getFallbackCryptoInfo(ticker);
+        } catch (ResourceAccessException e) {
+            fallbackService.recordFailure();
+            logger.error("Network error getting crypto info for {}: {}", ticker, e.getMessage());
+            return fallbackService.getFallbackCryptoInfo(ticker);
+        } catch (Exception e) {
+            fallbackService.recordFailure();
+            logger.error("Unexpected error getting crypto info for {}: {}", ticker, e.getMessage(), e);
+            return fallbackService.getFallbackCryptoInfo(ticker);
+        }
+    }
+
+    @Override
+    @Cacheable(value = CacheConfig.CRYPTO_SUPPORTED_LIST_CACHE, key = "'all'", unless = "#result.isEmpty()")
+    public List<CryptoCurrency> getSupportedCryptocurrencies() {
+        try {
+            // Check circuit breaker
+            if (!fallbackService.isCallAllowed()) {
+                logger.debug("Circuit breaker is OPEN, using fallback for getSupportedCryptocurrencies");
+                return fallbackService.getFallbackSupportedCryptocurrencies();
+            }
+            
+            String url = "/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false";
+            
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                List<CryptoCurrency> cryptocurrencies = objectMapper.readValue(
+                    response.getBody(), new TypeReference<List<CryptoCurrency>>() {});
+                
+                // Update ticker to ID mapping
+                updateTickerMapping(cryptocurrencies);
+                
+                // Record success
+                fallbackService.recordSuccess();
+                
+                logger.debug("Retrieved {} supported cryptocurrencies", cryptocurrencies.size());
+                return cryptocurrencies;
+            }
+            
+            logger.warn("Failed to retrieve supported cryptocurrencies");
+            return fallbackService.getFallbackSupportedCryptocurrencies();
+            
+        } catch (HttpClientErrorException e) {
+            fallbackService.recordFailure();
+            if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                logger.error("Rate limit exceeded for getSupportedCryptocurrencies");
+            } else {
+                logger.error("Client error getting supported cryptocurrencies: {}", e.getMessage());
+            }
+            return fallbackService.getFallbackSupportedCryptocurrencies();
+        } catch (HttpServerErrorException e) {
+            fallbackService.recordFailure();
+            logger.error("Server error getting supported cryptocurrencies: {}", e.getMessage());
+            return fallbackService.getFallbackSupportedCryptocurrencies();
+        } catch (ResourceAccessException e) {
+            fallbackService.recordFailure();
+            logger.error("Network error getting supported cryptocurrencies: {}", e.getMessage());
+            return fallbackService.getFallbackSupportedCryptocurrencies();
+        } catch (Exception e) {
+            fallbackService.recordFailure();
+            logger.error("Unexpected error getting supported cryptocurrencies: {}", e.getMessage(), e);
+            return fallbackService.getFallbackSupportedCryptocurrencies();
+        }
+    }
+
+    @Override
+    @Cacheable(value = CacheConfig.CRYPTO_SERVICE_STATUS_CACHE, key = "'status'")
+    public boolean isServiceAvailable() {
+        try {
+            // Check circuit breaker state - if it's open, service is considered unavailable
+            if (!fallbackService.isCallAllowed()) {
+                logger.debug("Circuit breaker is OPEN, service considered unavailable");
+                return false;
+            }
+            
+            String url = "/ping";
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            boolean available = response.getStatusCode() == HttpStatus.OK;
+            
+            if (available) {
+                fallbackService.recordSuccess();
+            } else {
+                fallbackService.recordFailure();
+            }
+            
+            logger.debug("CoinGecko service availability check: {}", available);
+            return available;
+            
+        } catch (HttpClientErrorException e) {
+            fallbackService.recordFailure();
+            logger.warn("CoinGecko service availability check failed (client error): {}", e.getMessage());
+            return false;
+        } catch (HttpServerErrorException e) {
+            fallbackService.recordFailure();
+            logger.warn("CoinGecko service availability check failed (server error): {}", e.getMessage());
+            return false;
+        } catch (ResourceAccessException e) {
+            fallbackService.recordFailure();
+            logger.warn("CoinGecko service availability check failed (network error): {}", e.getMessage());
+            return false;
+        } catch (Exception e) {
+            fallbackService.recordFailure();
+            logger.warn("CoinGecko service availability check failed (unexpected error): {}", e.getMessage());
+            return false;
+        }
+    }
+
+    @Override
+    public boolean isTickerSupported(String ticker) {
+        if (ticker == null || ticker.trim().isEmpty()) {
+            return false;
+        }
+        
+        try {
+            // Check if we have a recent mapping
+            ensureTickerMappingIsUpToDate();
+            
+            boolean isSupported = tickerToIdMapping.containsKey(ticker.toLowerCase());
+            
+            // If not found in our mapping and circuit breaker allows, try fallback
+            if (!isSupported && fallbackService.isCallAllowed()) {
+                // Check if fallback service has this ticker
+                List<CryptoCurrency> fallbackList = fallbackService.getFallbackSupportedCryptocurrencies();
+                isSupported = fallbackList.stream()
+                    .anyMatch(crypto -> ticker.equalsIgnoreCase(crypto.getSymbol()));
+            }
+            
+            return isSupported;
+            
+        } catch (Exception e) {
+            logger.warn("Error checking ticker support for {}: {}", ticker, e.getMessage());
+            // Fallback to checking only our local mapping
+            return tickerToIdMapping.containsKey(ticker.toLowerCase());
+        }
+    }
+
+    // Private helper methods
+
+    private void validateTicker(String ticker) {
+        if (ticker == null || ticker.trim().isEmpty()) {
+            throw new IllegalArgumentException("Ticker cannot be null or empty");
+        }
+    }
+
+    private void validateTimePeriod(TimePeriod period) {
+        if (period == null) {
+            throw new IllegalArgumentException("Time period cannot be null");
+        }
+    }
+
+    private String getCoinIdFromTicker(String ticker) {
+        ensureTickerMappingIsUpToDate();
+        return tickerToIdMapping.get(ticker.toLowerCase());
+    }
+
+    private void ensureTickerMappingIsUpToDate() {
+        if (lastMappingUpdate == null || 
+            LocalDateTime.now().isAfter(lastMappingUpdate.plusHours(MAPPING_CACHE_DURATION_HOURS))) {
+            
+            logger.debug("Updating ticker to coin ID mapping");
+            getSupportedCryptocurrencies(); // This will update the mapping
+        }
+    }
+
+    private void updateTickerMapping(List<CryptoCurrency> cryptocurrencies) {
+        tickerToIdMapping.clear();
+        
+        for (CryptoCurrency crypto : cryptocurrencies) {
+            if (crypto.getSymbol() != null && crypto.getId() != null) {
+                tickerToIdMapping.put(crypto.getSymbol().toLowerCase(), crypto.getId());
+            }
+        }
+        
+        lastMappingUpdate = LocalDateTime.now();
+        logger.debug("Updated ticker mapping with {} cryptocurrencies", tickerToIdMapping.size());
+    }
+
+    // Cache management methods
+
+    /**
+     * Evicts all cached price data.
+     * Useful when market conditions change rapidly or for testing purposes.
+     */
+    @CacheEvict(value = CacheConfig.CRYPTO_PRICE_CACHE, allEntries = true)
+    public void evictAllPriceCache() {
+        logger.info("Evicted all entries from price cache");
+    }
+
+    /**
+     * Evicts cached price data for a specific ticker.
+     * 
+     * @param ticker The cryptocurrency ticker to evict from cache
+     */
+    @CacheEvict(value = CacheConfig.CRYPTO_PRICE_CACHE, key = "#ticker.toLowerCase()")
+    public void evictPriceCache(String ticker) {
+        logger.debug("Evicted price cache for ticker: {}", ticker);
+    }
+
+    /**
+     * Evicts all cached market data.
+     */
+    @CacheEvict(value = CacheConfig.CRYPTO_MARKET_DATA_CACHE, allEntries = true)
+    public void evictAllMarketDataCache() {
+        logger.info("Evicted all entries from market data cache");
+    }
+
+    /**
+     * Evicts cached market data for a specific ticker.
+     * 
+     * @param ticker The cryptocurrency ticker to evict from cache
+     */
+    @CacheEvict(value = CacheConfig.CRYPTO_MARKET_DATA_CACHE, key = "#ticker.toLowerCase()")
+    public void evictMarketDataCache(String ticker) {
+        logger.debug("Evicted market data cache for ticker: {}", ticker);
+    }
+
+    /**
+     * Evicts all cached historical data.
+     */
+    @CacheEvict(value = CacheConfig.CRYPTO_HISTORICAL_DATA_CACHE, allEntries = true)
+    public void evictAllHistoricalDataCache() {
+        logger.info("Evicted all entries from historical data cache");
+    }
+
+    /**
+     * Evicts cached historical data for a specific ticker and period.
+     * 
+     * @param ticker The cryptocurrency ticker
+     * @param period The time period
+     */
+    @CacheEvict(value = CacheConfig.CRYPTO_HISTORICAL_DATA_CACHE, key = "#ticker.toLowerCase() + '_' + #period.name()")
+    public void evictHistoricalDataCache(String ticker, TimePeriod period) {
+        logger.debug("Evicted historical data cache for ticker: {} (period: {})", ticker, period);
+    }
+
+    /**
+     * Evicts all caches. Use with caution as this will force all subsequent
+     * requests to hit the external API until caches are repopulated.
+     */
+    @CacheEvict(value = {
+        CacheConfig.CRYPTO_PRICE_CACHE,
+        CacheConfig.CRYPTO_MARKET_DATA_CACHE,
+        CacheConfig.CRYPTO_HISTORICAL_DATA_CACHE,
+        CacheConfig.CRYPTO_INFO_CACHE,
+        CacheConfig.CRYPTO_SUPPORTED_LIST_CACHE,
+        CacheConfig.CRYPTO_SERVICE_STATUS_CACHE
+    }, allEntries = true)
+    public void evictAllCaches() {
+        logger.warn("Evicted ALL caches - all subsequent requests will hit the external API");
+    }
+
+    /**
+     * Warms up the cache by fetching data for popular cryptocurrencies.
+     * This method can be called at application startup or scheduled intervals.
+     */
+    public void warmupCache() {
+        logger.info("Starting cache warmup...");
+        
+        // Popular cryptocurrencies to warm up
+        String[] popularTickers = {"BTC", "ETH", "BNB", "ADA", "DOT", "SOL", "MATIC", "AVAX"};
+        
+        for (String ticker : popularTickers) {
+            try {
+                // Warm up price and market data
+                getCurrentPrice(ticker);
+                getMarketData(ticker);
+                
+                // Small delay to avoid hitting rate limits
+                Thread.sleep(100);
+                
+            } catch (Exception e) {
+                logger.warn("Failed to warm up cache for ticker {}: {}", ticker, e.getMessage());
+            }
+        }
+        
+        logger.info("Cache warmup completed for {} tickers", popularTickers.length);
+    }
+} 
