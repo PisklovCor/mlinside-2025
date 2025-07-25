@@ -89,7 +89,7 @@ public class TraderReport extends AnalysisResult {
     }
     
     /**
-     * Enumeration for trading actions.
+     * Перечисление для торговых действий.
      */
     public enum TradingAction {
         BUY,
@@ -103,7 +103,7 @@ public class TraderReport extends AnalysisResult {
     }
     
     /**
-     * Enumeration for order types.
+     * Перечисление для типов ордеров.
      */
     public enum OrderType {
         MARKET,
@@ -117,13 +117,13 @@ public class TraderReport extends AnalysisResult {
     }
     
     /**
-     * Enumeration for time in force options.
+     * Перечисление для опций времени действия.
      */
     public enum TimeInForce {
-        GTC,  // Good Till Cancelled
-        IOC,  // Immediate Or Cancel
-        FOK,  // Fill Or Kill
-        DAY,  // Day Order
-        GTD   // Good Till Date
+        GTC,  // Действителен до отмены
+        IOC,  // Немедленно или отмена
+        FOK,  // Исполнить или отменить
+        DAY,  // Дневной ордер
+        GTD   // Действителен до даты
     }
 } 

@@ -5,39 +5,39 @@ import org.springframework.stereotype.Component;
 import java.util.regex.Pattern;
 
 /**
- * Utility for input sanitization and validation
+ * Утилита для санитизации и валидации входных данных
  */
 @Component
 public class InputSanitizer {
     
-    // Pattern for valid cryptocurrency ticker symbols
+    // Паттерн для валидных тикеров криптовалют
     private static final Pattern TICKER_PATTERN = Pattern.compile("^[A-Z0-9]{1,10}$");
     
-    // Pattern for valid alphanumeric strings
+    // Паттерн для валидных буквенно-цифровых строк
     private static final Pattern ALPHANUMERIC_PATTERN = Pattern.compile("^[a-zA-Z0-9\\s-_]+$");
     
-    // Pattern for valid email addresses
+    // Паттерн для валидных email адресов
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
     
     /**
-     * Sanitize and validate cryptocurrency ticker
+     * Санитизация и валидация тикера криптовалюты
      */
     public String sanitizeTicker(String ticker) {
         if (ticker == null || ticker.trim().isEmpty()) {
-            throw new IllegalArgumentException("Ticker cannot be null or empty");
+            throw new IllegalArgumentException("Тикер не может быть null или пустым");
         }
         
         String sanitized = ticker.trim().toUpperCase();
         
         if (!TICKER_PATTERN.matcher(sanitized).matches()) {
-            throw new IllegalArgumentException("Invalid ticker format. Must be 1-10 uppercase letters/numbers");
+            throw new IllegalArgumentException("Неверный формат тикера. Должен содержать 1-10 заглавных букв/цифр");
         }
         
         return sanitized;
     }
     
     /**
-     * Sanitize alphanumeric input
+     * Санитизация буквенно-цифрового ввода
      */
     public String sanitizeAlphanumeric(String input, int maxLength) {
         if (input == null) {
@@ -51,31 +51,31 @@ public class InputSanitizer {
         }
         
         if (!ALPHANUMERIC_PATTERN.matcher(sanitized).matches()) {
-            throw new IllegalArgumentException("Input contains invalid characters");
+            throw new IllegalArgumentException("Ввод содержит неверные символы");
         }
         
         return sanitized;
     }
     
     /**
-     * Sanitize email address
+     * Санитизация email адреса
      */
     public String sanitizeEmail(String email) {
         if (email == null || email.trim().isEmpty()) {
-            throw new IllegalArgumentException("Email cannot be null or empty");
+            throw new IllegalArgumentException("Email не может быть null или пустым");
         }
         
         String sanitized = email.trim().toLowerCase();
         
         if (!EMAIL_PATTERN.matcher(sanitized).matches()) {
-            throw new IllegalArgumentException("Invalid email format");
+            throw new IllegalArgumentException("Неверный формат email");
         }
         
         return sanitized;
     }
     
     /**
-     * Remove potentially dangerous characters
+     * Удаление потенциально опасных символов
      */
     public String removeDangerousChars(String input) {
         if (input == null) {
@@ -86,7 +86,7 @@ public class InputSanitizer {
     }
     
     /**
-     * Validate and sanitize numeric input
+     * Валидация и санитизация числового ввода
      */
     public Long sanitizeLong(String input) {
         if (input == null || input.trim().isEmpty()) {
@@ -96,12 +96,12 @@ public class InputSanitizer {
         try {
             return Long.parseLong(input.trim());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid numeric value");
+            throw new IllegalArgumentException("Неверное числовое значение");
         }
     }
     
     /**
-     * Validate and sanitize double input
+     * Валидация и санитизация double ввода
      */
     public Double sanitizeDouble(String input) {
         if (input == null || input.trim().isEmpty()) {
@@ -111,7 +111,7 @@ public class InputSanitizer {
         try {
             return Double.parseDouble(input.trim());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid numeric value");
+            throw new IllegalArgumentException("Неверное числовое значение");
         }
     }
 } 

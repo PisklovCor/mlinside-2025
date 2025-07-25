@@ -5,25 +5,25 @@
         "https://checkstyle.org/dtds/suppressions_1_2.dtd">
 
 <suppressions>
-    <!-- Suppression for generated code -->
+    <!-- Подавление для сгенерированного кода -->
     <suppress checks=".*" files=".*[\\/]generated[\\/].*"/>
     <suppress checks=".*" files=".*[\\/]target[\\/].*"/>
     
-    <!-- Suppression for test files -->
+    <!-- Подавление для тестовых файлов -->
     <suppress checks="MissingJavadocType" files=".*Test\.java"/>
     <suppress checks="MissingJavadocMethod" files=".*Test\.java"/>
     <suppress checks="JavadocMethod" files=".*Test\.java"/>
     
-    <!-- Suppression for Spring Boot Application class -->
+    <!-- Подавление для главного класса Spring Boot приложения -->
     <suppress checks="MissingJavadocType" files=".*Application\.java"/>
     
-    <!-- Suppression for configuration classes -->
+    <!-- Подавление для классов конфигурации -->
     <suppress checks="MissingJavadocMethod" files=".*Config\.java"/>
     
-    <!-- Suppression for DTOs and entities with Lombok -->
+    <!-- Подавление для DTO и сущностей с Lombok -->
     <suppress checks="MissingJavadocMethod" files=".*[\\/]dto[\\/].*\.java"/>
     <suppress checks="MissingJavadocMethod" files=".*[\\/]model[\\/].*\.java"/>
     
-    <!-- Suppression for very short utility methods -->
+    <!-- Подавление для очень коротких утилитарных методов -->
     <suppress checks="MissingJavadocMethod" files=".*" lines="1-5"/>
 </suppressions> 

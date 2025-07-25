@@ -7,17 +7,17 @@ import org.springframework.stereotype.Component;
 import java.util.regex.Pattern;
 
 /**
- * Utility class for input validation and sanitization
+ * Утилитарный класс для валидации и санитизации входных данных
  */
 @Component
 public class InputValidator {
     
     private static final Logger logger = LoggerFactory.getLogger(InputValidator.class);
     
-    // Pattern for valid ticker symbols (alphanumeric, 1-10 characters)
+    // Паттерн для валидных тикеров (буквенно-цифровые, 1-10 символов)
     private static final Pattern TICKER_PATTERN = Pattern.compile("^[A-Za-z0-9]{1,10}$");
     
-    // Pattern for valid timeframes
+    // Паттерн для валидных временных интервалов
     private static final Pattern TIMEFRAME_PATTERN = Pattern.compile("^(1h|4h|24h|7d|30d)$");
     
     private final InputSanitizer inputSanitizer;
@@ -27,38 +27,38 @@ public class InputValidator {
     }
     
     /**
-     * Validate and sanitize ticker symbol
+     * Валидация и санитизация тикера
      */
     public String validateTicker(String ticker) {
         try {
             return inputSanitizer.sanitizeTicker(ticker);
         } catch (IllegalArgumentException e) {
-            logger.warn("Invalid ticker format: {}", ticker);
+            logger.warn("Неверный формат тикера: {}", ticker);
             throw e;
         }
     }
     
     /**
-     * Validate timeframe parameter
+     * Валидация параметра временного интервала
      */
     public String validateTimeframe(String timeframe) {
         if (timeframe == null || timeframe.trim().isEmpty()) {
-            return "24h"; // Default timeframe
+            return "24h"; // Временной интервал по умолчанию
         }
         
         String sanitizedTimeframe = timeframe.trim().toLowerCase();
         
         if (!TIMEFRAME_PATTERN.matcher(sanitizedTimeframe).matches()) {
-            logger.warn("Invalid timeframe: {}, using default", timeframe);
-            return "24h"; // Default to 24h if invalid
+            logger.warn("Неверный временной интервал: {}, используется по умолчанию", timeframe);
+            return "24h"; // По умолчанию 24h если неверный
         }
         
-        logger.debug("Timeframe validated: {} -> {}", timeframe, sanitizedTimeframe);
+        logger.debug("Временной интервал валидирован: {} -> {}", timeframe, sanitizedTimeframe);
         return sanitizedTimeframe;
     }
     
     /**
-     * Sanitize string input to prevent injection attacks
+     * Санитизация строкового ввода для предотвращения атак внедрения
      */
     public String sanitizeString(String input) {
         if (input == null) {
@@ -67,17 +67,17 @@ public class InputValidator {
         
         String sanitized = inputSanitizer.removeDangerousChars(input);
         
-        // Limit length
+        // Ограничение длины
         if (sanitized.length() > 1000) {
             sanitized = sanitized.substring(0, 1000);
-            logger.warn("Input truncated to 1000 characters");
+            logger.warn("Ввод обрезан до 1000 символов");
         }
         
         return sanitized.trim();
     }
     
     /**
-     * Validate numeric input
+     * Валидация числового ввода
      */
     public boolean isValidNumber(String input) {
         if (input == null || input.trim().isEmpty()) {
@@ -88,7 +88,7 @@ public class InputValidator {
             Double.parseDouble(input.trim());
             return true;
         } catch (NumberFormatException e) {
-            logger.warn("Invalid number format: {}", input);
+            logger.warn("Неверный формат числа: {}", input);
             return false;
         }
     }

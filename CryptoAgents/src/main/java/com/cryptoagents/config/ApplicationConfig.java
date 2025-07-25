@@ -4,14 +4,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Main application configuration class.
+ * Главный класс конфигурации приложения.
  * 
- * This class contains Spring configuration for the CryptoAgents application.
+ * Этот класс содержит Spring конфигурацию для приложения CryptoAgents.
  */
 @Slf4j
 @Configuration
 public class ApplicationConfig {
     
-    // TODO: Configuration beans will be added in later tasks
+    // TODO: Конфигурационные бины будут добавлены в последующих задачах
     
 } 

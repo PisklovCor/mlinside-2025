@@ -9,19 +9,19 @@ import org.springframework.web.client.RestClient;
 import java.time.Duration;
 
 /**
- * Configuration class for RestClient beans used for external API calls.
+ * Класс конфигурации для RestClient бинов, используемых для внешних API вызовов.
  * 
- * This configuration provides pre-configured RestClient instances
- * with appropriate timeouts and error handling for cryptocurrency API integration.
+ * Эта конфигурация предоставляет предварительно настроенные экземпляры RestClient
+ * с соответствующими таймаутами и обработкой ошибок для интеграции с API криптовалют.
  */
 @Slf4j
 @Configuration
 public class RestClientConfig {
 
     /**
-     * Creates a RestClient bean configured for CoinGecko API calls.
+     * Создает RestClient бин, настроенный для вызовов CoinGecko API.
      * 
-     * @return Configured RestClient instance for CoinGecko API
+     * @return Настроенный экземпляр RestClient для CoinGecko API
      */
     @Bean("coinGeckoRestClient")
     public RestClient coinGeckoRestClient() {
@@ -38,9 +38,9 @@ public class RestClientConfig {
     }
 
     /**
-     * Creates a general purpose RestClient bean for other external API calls.
+     * Создает универсальный RestClient бин для других внешних API вызовов.
      * 
-     * @return Configured RestClient instance for general use
+     * @return Настроенный экземпляр RestClient для общего использования
      */
     @Bean("generalRestClient")
     public RestClient generalRestClient() {

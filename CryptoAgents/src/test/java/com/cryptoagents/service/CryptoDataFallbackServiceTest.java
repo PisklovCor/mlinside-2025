@@ -70,16 +70,16 @@ class CryptoDataFallbackServiceTest {
         assertEquals(CryptoDataFallbackService.CircuitBreakerState.OPEN, 
             fallbackService.getCircuitState());
 
-        // Wait for recovery timeout (1 minute in production, but we'll test the logic)
-        // Note: In real tests, we'd use a shorter timeout or mock the time
-        Thread.sleep(1100); // Slightly more than 1 second for test timing
+        // Ждем таймаут восстановления (1 минута в продакшене, но мы протестируем логику)
+        // Примечание: В реальных тестах мы бы использовали более короткий таймаут или мокировали время
+        Thread.sleep(1100); // Немного больше 1 секунды для тестового тайминга
 
-        // When - check if calls are allowed (should transition to HALF_OPEN)
-        // Note: The actual implementation might need time manipulation for proper testing
+        // Когда - проверяем, разрешены ли вызовы (должен перейти в HALF_OPEN)
+        // Примечание: Реальная реализация может потребовать манипуляции временем для правильного тестирования
         boolean callAllowed = fallbackService.isCallAllowed();
 
-        // Then - depending on implementation timing, this might still be OPEN
-        // In a real scenario, we'd mock the system time or use dependency injection
+        // Тогда - в зависимости от тайминга реализации, это может все еще быть OPEN
+        // В реальном сценарии мы бы мокировали системное время или использовали dependency injection
         assertTrue(true); // Placeholder for timing-dependent test
     }
 
@@ -194,10 +194,10 @@ class CryptoDataFallbackServiceTest {
         // When
         fallbackService.storeEmergencyData(ticker, price, marketData);
 
-        // Then - subsequent fallback calls should use stored data
+        // Тогда - последующие fallback вызовы должны использовать сохраненные данные
         Optional<BigDecimal> fallbackPrice = fallbackService.getFallbackPrice(ticker);
         assertTrue(fallbackPrice.isPresent());
-        // Note: The exact behavior depends on implementation details
+        // Примечание: Точное поведение зависит от деталей реализации
     }
 
     @Test

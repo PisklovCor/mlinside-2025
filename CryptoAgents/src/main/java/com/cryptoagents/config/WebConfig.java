@@ -6,7 +6,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Web configuration for interceptors and CORS
+ * Веб-конфигурация для интерцепторов и CORS
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {

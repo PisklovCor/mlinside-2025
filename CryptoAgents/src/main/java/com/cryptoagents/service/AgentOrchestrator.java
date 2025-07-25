@@ -21,14 +21,14 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 /**
- * Service that orchestrates the execution of cryptocurrency analysis agents.
+ * Сервис, координирующий выполнение агентов анализа криптовалют.
  * 
- * This component coordinates the sequential execution of agents in the correct order:
- * 1. Analyst - Performs technical analysis
- * 2. Risk Manager - Assesses risks based on analyst findings
- * 3. Trader - Makes trading recommendations based on previous results
+ * Этот компонент координирует последовательное выполнение агентов в правильном порядке:
+ * 1. Аналитик - Выполняет технический анализ
+ * 2. Риск-менеджер - Оценивает риски на основе результатов аналитика
+ * 3. Трейдер - Принимает торговые рекомендации на основе предыдущих результатов
  * 
- * Supports both sequential single-token analysis and parallel multi-token analysis.
+ * Поддерживает как последовательный анализ одного токена, так и параллельный анализ нескольких токенов.
  */
 @Service
 @RequiredArgsConstructor
@@ -36,88 +36,88 @@ public class AgentOrchestrator {
     
     private static final Logger logger = LoggerFactory.getLogger(AgentOrchestrator.class);
     
-    // Dependencies injected via constructor
+    // Зависимости, внедряемые через конструктор
     private final AgentFactory agentFactory;
     private final CryptoDataService cryptoDataService;
     
-    // Execution order for agents
+    // Порядок выполнения агентов
     private static final List<Agent.AgentType> AGENT_EXECUTION_ORDER = Arrays.asList(
             Agent.AgentType.ANALYST,
             Agent.AgentType.RISK_MANAGER,
             Agent.AgentType.TRADER
     );
     
-    // Thread pool for parallel execution
+    // Пул потоков для параллельного выполнения
     private final Executor executorService = Executors.newCachedThreadPool();
     
-    // Metrics for monitoring orchestrator performance
+    // Метрики для мониторинга производительности оркестратора
     private final OrchestratorMetrics metrics = new OrchestratorMetrics();
     
     /**
-     * Analyze a single cryptocurrency ticker using all agents in sequence.
+     * Анализирует один тикер криптовалюты, используя всех агентов последовательно.
      * 
-     * This is the main entry point for single-token analysis.
-     * Agents are executed in the predefined order with results passed between them.
+     * Это основная точка входа для анализа одного токена.
+     * Агенты выполняются в предопределенном порядке с передачей результатов между ними.
      * 
-     * @param ticker the cryptocurrency ticker to analyze (e.g., "BTC", "ETH")
-     * @return complete analysis report containing results from all agents
-     * @throws IllegalArgumentException if ticker is null or empty
+     * @param ticker тикер криптовалюты для анализа (например, "BTC", "ETH")
+     * @return полный отчет об анализе, содержащий результаты от всех агентов
+     * @throws IllegalArgumentException если тикер равен null или пустой
      */
     public AnalysisReport analyze(String ticker) throws OrchestrationException {
-        // Set up logging context for this operation
+        // Настройка контекста логирования для этой операции
         String operationId = java.util.UUID.randomUUID().toString().substring(0, 8);
         MDC.put("operationId", operationId);
         MDC.put("ticker", ticker);
         
-        logger.info("Starting analysis for ticker: {} [operationId: {}]", ticker, operationId);
+        logger.info("Начало анализа для тикера: {} [operationId: {}]", ticker, operationId);
         metrics.recordAnalysisStart(ticker);
         
         long startTime = System.currentTimeMillis();
         
         try {
-            // Validation
+            // Валидация
             if (!StringUtils.hasText(ticker)) {
-                throw new OrchestrationException(ticker, "VALIDATION", "Ticker cannot be null or empty");
+                throw new OrchestrationException(ticker, "VALIDATION", "Тикер не может быть null или пустым");
             }
             
-            // Initialize report
+            // Инициализация отчета
             AnalysisReport report = AnalysisReport.builder()
                     .ticker(ticker.toUpperCase())
                     .analysisStartTime(LocalDateTime.now())
                     .successful(true)
                     .build();
             
-            // Check if ticker is supported
+            // Проверка поддержки тикера
             if (!cryptoDataService.isTickerSupported(ticker)) {
-                String error = "Ticker not supported: " + ticker;
+                String error = "Тикер не поддерживается: " + ticker;
                 logger.warn(error);
                 report.addError(error);
                 metrics.recordAnalysisFailure(ticker, error);
                 return report;
             }
             
-            // Prepare analysis context with market data
+            // Подготовка контекста анализа с рыночными данными
             AnalysisContext context = prepareAnalysisContext(ticker);
             if (context == null) {
-                String error = "Failed to retrieve market data for ticker: " + ticker;
+                String error = "Не удалось получить рыночные данные для тикера: " + ticker;
                 logger.error(error);
                 report.addError(error);
                 metrics.recordAnalysisFailure(ticker, error);
                 throw new OrchestrationException(ticker, "DATA_RETRIEVAL", operationId, error, null);
             }
             
-            // Execute agents in sequence
+            // Выполнение агентов последовательно
             executeAgentsSequentially(context, report);
             
-            // Record successful completion
+            // Запись успешной завершения
             long totalTime = System.currentTimeMillis() - startTime;
             metrics.recordAnalysisSuccess(ticker, totalTime);
             
-            // Finalize report
+            // Финальная обработка отчета
             report.setAnalysisEndTime(LocalDateTime.now());
             report.calculateExecutionTime();
             
-            logger.info("Analysis completed for ticker: {} in {}ms. Success: {} [operationId: {}]", 
+            logger.info("Анализ завершен для тикера: {} за {}мс. Успех: {} [operationId: {}]", 
                     ticker, report.getExecutionTimeMs(), report.isSuccessful(), operationId);
             
             return report;
@@ -125,38 +125,38 @@ public class AgentOrchestrator {
         } catch (OrchestrationException oe) {
             long executionTime = System.currentTimeMillis() - startTime;
             metrics.recordAnalysisFailure(ticker, oe.getMessage());
-            logger.error("Orchestration failed for ticker: {} after {}ms [operationId: {}]", ticker, executionTime, operationId, oe);
+            logger.error("Ошибка оркестрации для тикера: {} после {}мс [operationId: {}]", ticker, executionTime, operationId, oe);
             throw oe;
         } catch (Exception ex) {
             long executionTime = System.currentTimeMillis() - startTime;
-            String error = "Unexpected error during analysis: " + ex.getMessage();
+            String error = "Непредвиденная ошибка во время анализа: " + ex.getMessage();
             metrics.recordAnalysisFailure(ticker, error);
-            logger.error("Unexpected error during analysis for ticker: {} after {}ms [operationId: {}]", ticker, executionTime, operationId, ex);
+            logger.error("Непредвиденная ошибка во время анализа для тикера: {} после {}мс [operationId: {}]", ticker, executionTime, operationId, ex);
             throw new OrchestrationException(ticker, "UNEXPECTED_ERROR", operationId, error, ex);
         } finally {
-            // Clean up MDC
+            // Очистка MDC
             MDC.clear();
         }
     }
     
     /**
-     * Analyze multiple cryptocurrency tickers in parallel.
+     * Анализирует несколько тикеров криптовалют параллельно.
      * 
-     * Each ticker is analyzed independently using the full agent pipeline.
-     * This method optimizes throughput by executing multiple analyses concurrently.
+     * Каждый тикер анализируется независимо, используя полную конвейерную обработку агентов.
+     * Этот метод оптимизирует пропускную способность, выполняя несколько анализов параллельно.
      * 
-     * @param tickers collection of cryptocurrency tickers to analyze
-     * @return map of ticker to analysis report
-     * @throws IllegalArgumentException if tickers is null or empty
+     * @param tickers коллекция тикеров криптовалют для анализа
+     * @return карта тикера к отчету об анализе
+     * @throws IllegalArgumentException если tickers равен null или пустой
      */
     public Map<String, AnalysisReport> analyzeMultiple(Collection<String> tickers) {
-        logger.info("Starting parallel analysis for {} tickers", tickers != null ? tickers.size() : 0);
+        logger.info("Начало параллельного анализа для {} тикеров", tickers != null ? tickers.size() : 0);
         
         if (tickers == null || tickers.isEmpty()) {
-            throw new IllegalArgumentException("Tickers collection cannot be null or empty");
+            throw new IllegalArgumentException("Коллекция тикеров не может быть null или пустой");
         }
         
-        // Create futures for parallel execution
+        // Создание будущих для параллельного выполнения
         Map<String, CompletableFuture<AnalysisReport>> futures = tickers.stream()
                 .collect(Collectors.toMap(
                         ticker -> ticker,
@@ -164,45 +164,45 @@ public class AgentOrchestrator {
                             try {
                                 return analyze(ticker);
                             } catch (OrchestrationException e) {
-                                logger.error("Orchestration failed for ticker: {} in parallel execution", ticker, e);
+                                logger.error("Ошибка оркестрации для тикера: {} в параллельном выполнении", ticker, e);
                                 AnalysisReport errorReport = AnalysisReport.builder()
                                         .ticker(ticker)
                                         .analysisStartTime(LocalDateTime.now())
                                         .analysisEndTime(LocalDateTime.now())
                                         .successful(false)
                                         .build();
-                                errorReport.addError("Orchestration failed: " + e.getMessage());
+                                errorReport.addError("Ошибка оркестрации: " + e.getMessage());
                                 return errorReport;
                             }
                         }, executorService)
                 ));
         
-        // Wait for all analyses to complete and collect results
+        // Ожидание завершения всех анализов и сбор результатов
         Map<String, AnalysisReport> results = new HashMap<>();
         futures.forEach((ticker, future) -> {
             try {
                 results.put(ticker, future.get());
             } catch (Exception e) {
-                logger.error("Failed to complete analysis for ticker: {}", ticker, e);
+                logger.error("Не удалось завершить анализ для тикера: {}", ticker, e);
                 AnalysisReport errorReport = AnalysisReport.builder()
                         .ticker(ticker)
                         .analysisStartTime(LocalDateTime.now())
                         .analysisEndTime(LocalDateTime.now())
                         .successful(false)
                         .build();
-                errorReport.addError("Parallel execution failed: " + e.getMessage());
+                errorReport.addError("Параллельное выполнение завершено с ошибкой: " + e.getMessage());
                 results.put(ticker, errorReport);
             }
         });
         
-        logger.info("Parallel analysis completed for {} tickers", results.size());
+        logger.info("Параллельный анализ завершен для {} тикеров", results.size());
         return results;
     }
     
     /**
-     * Get the list of available agents in execution order.
+     * Получает список доступных агентов в порядке выполнения.
      * 
-     * @return list of available agents sorted by priority/execution order
+     * @return список доступных агентов, отсортированных по приоритету/порядку выполнения
      */
     public List<Agent> getAvailableAgents() {
         return AGENT_EXECUTION_ORDER.stream()
@@ -211,197 +211,197 @@ public class AgentOrchestrator {
     }
     
     /**
-     * Check if the orchestrator is ready to perform analysis.
+     * Проверяет, готов ли оркестратор к выполнению анализа.
      * 
-     * @return true if all required services are available
+     * @return true, если доступны все необходимые сервисы
      */
     public boolean isReady() {
         try {
-            // Check if data service is available
+            // Проверка доступности сервиса данных
             boolean dataServiceReady = cryptoDataService.isServiceAvailable();
             
-            // Check if agents can be created
+            // Проверка создания агентов
             boolean agentsReady = AGENT_EXECUTION_ORDER.stream()
                     .allMatch(agentType -> {
                         try {
                             Agent agent = agentFactory.createAgent(agentType);
                             return agent != null;
                         } catch (Exception e) {
-                            logger.warn("Failed to create agent: {}", agentType, e);
+                            logger.warn("Не удалось создать агента: {}", agentType, e);
                             return false;
                         }
                     });
             
             boolean ready = dataServiceReady && agentsReady;
-            logger.debug("Orchestrator ready status: dataService={}, agents={}, overall={}", 
+            logger.debug("Статус готовности оркестратора: dataService={}, agents={}, overall={}", 
                     dataServiceReady, agentsReady, ready);
             
             return ready;
         } catch (Exception e) {
-            logger.error("Error checking orchestrator readiness", e);
+            logger.error("Ошибка проверки готовности оркестратора", e);
             return false;
         }
     }
     
     /**
-     * Prepare analysis context with required market data.
+     * Подготавливает контекст анализа с необходимыми рыночными данными.
      * 
-     * @param ticker the cryptocurrency ticker
-     * @return prepared analysis context or null if data cannot be retrieved
+     * @param ticker тикер криптовалюты
+     * @return подготовленный контекст анализа или null, если данные не могут быть получены
      */
     private AnalysisContext prepareAnalysisContext(String ticker) {
-        logger.debug("Preparing analysis context for ticker: {}", ticker);
+        logger.debug("Подготовка контекста анализа для тикера: {}", ticker);
         
         try {
             AnalysisContext context = new AnalysisContext();
             context.setTicker(ticker.toUpperCase());
             
-            // Get current market data
+            // Получение текущих рыночных данных
             Optional<MarketData> marketDataOpt = cryptoDataService.getMarketData(ticker);
             if (marketDataOpt.isPresent()) {
                 context.setMarketData(marketDataOpt.get());
-                logger.debug("Market data retrieved for ticker: {}", ticker);
+                logger.debug("Рыночные данные получены для тикера: {}", ticker);
             } else {
-                logger.warn("No market data available for ticker: {}", ticker);
+                logger.warn("Рыночные данные недоступны для тикера: {}", ticker);
                 return null;
             }
             
-            // Get historical data (default to 30 days)
+            // Получение исторических данных (по умолчанию 30 дней)
             Optional<HistoricalData> historicalDataOpt = cryptoDataService.getHistoricalData(ticker, TimePeriod.ONE_MONTH);
             if (historicalDataOpt.isPresent()) {
                 context.setHistoricalData(Arrays.asList(historicalDataOpt.get()));
-                logger.debug("Historical data retrieved for ticker: {}", ticker);
+                logger.debug("Исторические данные получены для тикера: {}", ticker);
             } else {
-                logger.warn("No historical data available for ticker: {}", ticker);
-                // Historical data is optional, so continue without it
+                logger.warn("Исторические данные недоступны для тикера: {}", ticker);
+                // Исторические данные являются необязательными, поэтому продолжаем без них
             }
             
             context.setStartTime(System.currentTimeMillis());
             return context;
             
         } catch (Exception e) {
-            logger.error("Failed to prepare analysis context for ticker: {}", ticker, e);
+            logger.error("Не удалось подготовить контекст анализа для тикера: {}", ticker, e);
             return null;
         }
     }
     
     /**
-     * Execute all agents in the predefined sequence.
+     * Выполняет всех агентов в предопределенной последовательности.
      * 
-     * @param context the analysis context with market data
-     * @param report the report to populate with results
+     * @param context контекст анализа с рыночными данными
+     * @param report отчет для заполнения результатами
      */
     private void executeAgentsSequentially(AnalysisContext context, AnalysisReport report) throws OrchestrationException {
         String ticker = context.getTicker();
-        logger.debug("Executing agents sequentially for ticker: {}", ticker);
+        logger.debug("Выполнение агентов последовательно для тикера: {}", ticker);
         
         for (Agent.AgentType agentType : AGENT_EXECUTION_ORDER) {
             long agentStartTime = System.currentTimeMillis();
             String agentName = agentType.name();
             
             try {
-                // Create agent instance
+                // Создание экземпляра агента
                 Agent agent = agentFactory.createAgent(agentType);
-                agentName = agent.getName(); // Use actual agent name
+                agentName = agent.getName(); // Использование фактического имени агента
                 
-                logger.debug("Executing agent: {} for ticker: {}", agentName, ticker);
+                logger.debug("Выполнение агента: {} для тикера: {}", agentName, ticker);
                 
-                // Check if agent can analyze this context
+                // Проверка, может ли агент анализировать этот контекст
                 if (!agent.canAnalyze(context)) {
-                    String warning = String.format("Agent %s cannot analyze ticker: %s", agentName, ticker);
+                    String warning = String.format("Агент %s не может анализировать тикер: %s", agentName, ticker);
                     logger.warn(warning);
                     report.addError(warning);
                     
-                    // Record failed execution in metrics
+                    // Запись неудачного выполнения в метрики
                     long executionTime = System.currentTimeMillis() - agentStartTime;
                     metrics.recordAgentExecution(agentName, executionTime, false);
                     continue;
                 }
                 
-                // Execute agent analysis
+                // Выполнение анализа агента
                 AnalysisResult result = agent.analyze(context);
                 long executionTime = System.currentTimeMillis() - agentStartTime;
                 
                 if (result != null) {
-                    // Add result to report
+                    // Добавление результата в отчет
                     report.getAgentResults().add(result);
                     
-                    // Add result to context for next agent
+                    // Добавление результата в контекст для следующего агента
                     context.addAgentResult(agentName, result);
                     
-                    // Record execution time
+                    // Запись времени выполнения
                     report.addAgentExecutionTime(agentName, executionTime);
                     
-                    // Record successful execution in metrics
+                    // Запись успешного выполнения в метрики
                     metrics.recordAgentExecution(agentName, executionTime, true);
                     
-                    logger.info("Agent {} completed analysis for ticker: {} in {}ms", 
+                    logger.info("Агент {} завершил анализ для тикера: {} за {}мс", 
                             agentName, ticker, executionTime);
                 } else {
-                    String error = String.format("Agent %s returned null result for ticker: %s", agentName, ticker);
+                    String error = String.format("Агент %s вернул null результат для тикера: %s", agentName, ticker);
                     logger.error(error);
                     report.addError(error);
                     
-                    // Record failed execution in metrics
+                    // Запись неудачного выполнения в метрики
                     metrics.recordAgentExecution(agentName, executionTime, false);
                     
-                    // This is a critical error - we should not continue
+                    // Это критическая ошибка - мы не должны продолжать оркестрацию
                     throw new OrchestrationException(ticker, "AGENT_NULL_RESULT", 
-                            String.format("Agent %s returned null result", agentName));
+                            String.format("Агент %s вернул null результат", agentName));
                 }
                 
             } catch (AgentAnalysisException aae) {
                 long executionTime = System.currentTimeMillis() - agentStartTime;
-                String error = String.format("Agent %s failed analysis: %s", agentName, aae.getMessage());
+                String error = String.format("Агент %s не удалось проанализировать: %s", agentName, aae.getMessage());
                 
                 logger.error(error, aae);
                 report.addError(error);
                 report.addAgentExecutionTime(agentName, executionTime);
                 
-                // Record failed execution in metrics
+                // Запись неудачного выполнения в метрики
                 metrics.recordAgentExecution(agentName, executionTime, false);
                 
-                // Continue with next agent rather than failing entire orchestration
-                logger.warn("Continuing with next agent after {} failure", agentName);
+                // Продолжение с следующим агентом, а не отказ всей оркестрации
+                logger.warn("Продолжение с следующим агентом после {} неудачи", agentName);
                 
             } catch (Exception ex) {
                 long executionTime = System.currentTimeMillis() - agentStartTime;
-                String error = String.format("Unexpected error in agent %s: %s", agentName, ex.getMessage());
+                String error = String.format("Непредвиденная ошибка в агенте %s: %s", agentName, ex.getMessage());
                 
                 logger.error(error, ex);
                 report.addError(error);
                 report.addAgentExecutionTime(agentName, executionTime);
                 
-                // Record failed execution in metrics
+                // Запись неудачного выполнения в метрики
                 metrics.recordAgentExecution(agentName, executionTime, false);
                 
-                // For unexpected errors, we might want to fail the entire orchestration
+                // Для неожиданных ошибок мы можем завершить всю оркестрацию
                 throw new OrchestrationException(ticker, "AGENT_UNEXPECTED_ERROR", 
-                        String.format("Unexpected error in agent %s", agentName), ex);
+                        String.format("Непредвиденная ошибка в агенте %s", agentName), ex);
             }
         }
         
-        logger.debug("Sequential agent execution completed for ticker: {}", ticker);
+        logger.debug("Последовательное выполнение агентов завершено для тикера: {}", ticker);
         
-                 // Check if at least one agent produced results
+                 // Проверка, производил ли хоть один агент результаты
          if (report.getAgentResults().isEmpty()) {
              throw new OrchestrationException(ticker, "NO_AGENT_RESULTS", 
-                     "No agents produced successful results");
+                     "Ни один агент не произвел успешные результаты");
          }
     }
     
     /**
-     * Get orchestrator performance metrics.
+     * Получает метрики производительности оркестратора.
      * 
-     * @return current metrics instance
+     * @return текущий экземпляр метрик
      */
     public OrchestratorMetrics getMetrics() {
         return metrics;
     }
     
     /**
-     * Log current metrics summary.
-     * Useful for monitoring and debugging orchestrator performance.
+     * Логирует сводку текущих метрик.
+     * Полезно для мониторинга и отладки производительности оркестратора.
      */
     public void logMetricsSummary() {
         metrics.logMetricsSummary();

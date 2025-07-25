@@ -14,39 +14,39 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * Configuration class for caching infrastructure.
+ * Класс конфигурации для инфраструктуры кэширования.
  * 
- * This class sets up caching mechanisms for improving performance
- * of cryptocurrency data retrieval and analysis operations.
+ * Этот класс настраивает механизмы кэширования для улучшения производительности
+ * операций получения и анализа данных криптовалют.
  * 
- * Cache Categories:
- * - Price Data: Short-term cache for current prices (1 minute TTL)
- * - Market Data: Medium-term cache for market information (5 minutes TTL)
- * - Historical Data: Long-term cache for historical price data (15 minutes TTL)
- * - Analysis Results: Cache for agent analysis results (10 minutes TTL)
+ * Категории кэша:
+ * - Данные цен: Краткосрочный кэш для текущих цен (TTL 1 минута)
+ * - Рыночные данные: Среднесрочный кэш для рыночной информации (TTL 5 минут)
+ * - Исторические данные: Долгосрочный кэш для исторических данных цен (TTL 15 минут)
+ * - Результаты анализа: Кэш для результатов анализа агентов (TTL 10 минут)
  */
 @Configuration
 public class CacheConfig {
 
-    // Cache names as constants
+    // Имена кэшей как константы
     public static final String PRICE_CACHE = "priceData";
     public static final String MARKET_CACHE = "marketData";
     public static final String HISTORICAL_CACHE = "historicalData";
     public static final String ANALYSIS_CACHE = "analysisResults";
     public static final String API_RESPONSE_CACHE = "apiResponseCache";
 
-    // TTL values in milliseconds
-    private static final long PRICE_CACHE_TTL = 60_000L;        // 1 minute
-    private static final long MARKET_CACHE_TTL = 300_000L;      // 5 minutes
-    private static final long HISTORICAL_CACHE_TTL = 900_000L;  // 15 minutes
-    private static final long ANALYSIS_CACHE_TTL = 600_000L;    // 10 minutes
-    private static final long API_RESPONSE_TTL = 180_000L;      // 3 minutes
+    // Значения TTL в миллисекундах
+    private static final long PRICE_CACHE_TTL = 60_000L;        // 1 минута
+    private static final long MARKET_CACHE_TTL = 300_000L;      // 5 минут
+    private static final long HISTORICAL_CACHE_TTL = 900_000L;  // 15 минут
+    private static final long ANALYSIS_CACHE_TTL = 600_000L;    // 10 минут
+    private static final long API_RESPONSE_TTL = 180_000L;      // 3 минуты
 
     /**
-     * Creates and configures the cache manager with multiple named caches.
-     * Each cache has different TTL settings optimized for the type of data.
+     * Создает и настраивает менеджер кэша с несколькими именованными кэшами.
+     * Каждый кэш имеет различные настройки TTL, оптимизированные для типа данных.
      * 
-     * @return Configured cache manager
+     * @return Настроенный менеджер кэша
      */
     @Bean
     public CacheManager cacheManager() {
@@ -64,19 +64,19 @@ public class CacheConfig {
     }
 
     /**
-     * Creates a TTL (Time To Live) enabled cache.
+     * Создает кэш с поддержкой TTL (Time To Live).
      * 
-     * @param name Cache name
-     * @param ttlMs Time to live in milliseconds
-     * @return Configured cache with TTL support
+     * @param name Имя кэша
+     * @param ttlMs Время жизни в миллисекундах
+     * @return Настроенный кэш с поддержкой TTL
      */
     private Cache createTTLCache(String name, long ttlMs) {
         return new TTLConcurrentMapCache(name, ttlMs);
     }
 
     /**
-     * Custom cache implementation with TTL (Time To Live) support.
-     * Wraps values with expiration timestamps to enable automatic cleanup.
+     * Пользовательская реализация кэша с поддержкой TTL (Time To Live).
+     * Оборачивает значения с временными метками истечения для автоматической очистки.
      */
     private static class TTLConcurrentMapCache extends ConcurrentMapCache {
         private final long ttlMs;

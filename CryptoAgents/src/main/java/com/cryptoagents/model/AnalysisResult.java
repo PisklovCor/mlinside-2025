@@ -7,10 +7,10 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * Base entity class for analysis results from different agents.
+ * Базовый класс сущности для результатов анализа от различных агентов.
  * 
- * This class serves as the foundation for specific agent result types
- * and contains common fields shared across all analysis results.
+ * Этот класс служит основой для конкретных типов результатов агентов
+ * и содержит общие поля, используемые во всех результатах анализа.
  */
 @Data
 @NoArgsConstructor
@@ -49,7 +49,7 @@ public abstract class AnalysisResult {
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
     
-    // Constructor with basic fields
+    // Конструктор с базовыми полями
     public AnalysisResult(String ticker, String agentName) {
         this.ticker = ticker;
         this.agentName = agentName;
@@ -58,7 +58,7 @@ public abstract class AnalysisResult {
     }
     
     /**
-     * Enumeration for analysis status values.
+     * Перечисление для значений статуса анализа.
      */
     public enum AnalysisStatus {
         PENDING,

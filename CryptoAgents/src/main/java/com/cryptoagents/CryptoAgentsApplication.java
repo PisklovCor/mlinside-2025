@@ -6,10 +6,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
 
 /**
- * Main application class for CryptoAgents - Multi-agent cryptocurrency analysis system.
+ * Главный класс приложения CryptoAgents - Система мультиагентного анализа криптовалют.
  * 
- * This application provides a comprehensive analysis of cryptocurrency tokens
- * using three specialized agents: Analyst, Risk Manager, and Trader.
+ * Это приложение предоставляет комплексный анализ токенов криптовалют
+ * с использованием трех специализированных агентов: Аналитик, Риск-менеджер и Трейдер.
  * 
  * @author CryptoAgents Team
  * @version 1.0.0
@@ -20,12 +20,12 @@ import org.springframework.cache.annotation.EnableCaching;
 public class CryptoAgentsApplication {
 
     public static void main(String[] args) {
-        log.info("🚀 Starting CryptoAgents application...");
+        log.info("🚀 Запуск приложения CryptoAgents...");
         try {
             SpringApplication.run(CryptoAgentsApplication.class, args);
-            log.info("✅ CryptoAgents application started successfully");
+            log.info("✅ Приложение CryptoAgents успешно запущено");
         } catch (Exception e) {
-            log.error("❌ Failed to start CryptoAgents application: {}", e.getMessage(), e);
+            log.error("❌ Не удалось запустить приложение CryptoAgents: {}", e.getMessage(), e);
             throw e;
         }
     }

@@ -11,33 +11,33 @@ import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Metrics collector for AgentOrchestrator performance monitoring.
+ * Сборщик метрик для мониторинга производительности AgentOrchestrator.
  * 
- * This class tracks various performance metrics and error rates
- * to help monitor the health and efficiency of the orchestration process.
+ * Этот класс отслеживает различные метрики производительности и частоту ошибок
+ * для помощи в мониторинге состояния и эффективности процесса оркестрации.
  */
 public class OrchestratorMetrics {
     
     private static final Logger logger = LoggerFactory.getLogger(OrchestratorMetrics.class);
     
-    // Operation counters
+    // Счетчики операций
     private final AtomicLong totalAnalysisRequests = new AtomicLong(0);
     private final AtomicLong successfulAnalysis = new AtomicLong(0);
     private final AtomicLong failedAnalysis = new AtomicLong(0);
     
-    // Agent-specific metrics
+    // Агент-специфичные метрики
     private final Map<String, AtomicLong> agentExecutionCounts = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> agentFailureCounts = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> agentExecutionTimes = new ConcurrentHashMap<>();
     
-    // Performance metrics
+    // Метрики производительности
     private final AtomicLong totalExecutionTime = new AtomicLong(0);
     private volatile long lastResetTime = System.currentTimeMillis();
     
     /**
-     * Record the start of an analysis operation
+     * Записывает начало операции анализа
      * 
-     * @param ticker the cryptocurrency ticker being analyzed
+     * @param ticker тикер криптовалюты, который анализируется
      */
     public void recordAnalysisStart(String ticker) {
         totalAnalysisRequests.incrementAndGet();
@@ -46,10 +46,10 @@ public class OrchestratorMetrics {
     }
     
     /**
-     * Record successful completion of analysis
+     * Записывает успешное завершение анализа
      * 
-     * @param ticker the cryptocurrency ticker
-     * @param totalTime total execution time in milliseconds
+     * @param ticker тикер криптовалюты
+     * @param totalTime общее время выполнения в миллисекундах
      */
     public void recordAnalysisSuccess(String ticker, long totalTime) {
         successfulAnalysis.incrementAndGet();
@@ -59,10 +59,10 @@ public class OrchestratorMetrics {
     }
     
     /**
-     * Record failed analysis
+     * Записывает неудачный анализ
      * 
-     * @param ticker the cryptocurrency ticker
-     * @param error the error message
+     * @param ticker тикер криптовалюты
+     * @param error сообщение об ошибке
      */
     public void recordAnalysisFailure(String ticker, String error) {
         failedAnalysis.incrementAndGet();
@@ -71,11 +71,11 @@ public class OrchestratorMetrics {
     }
     
     /**
-     * Record agent execution
+     * Записывает выполнение агента
      * 
-     * @param agentName the name of the agent
-     * @param executionTime execution time in milliseconds
-     * @param success whether the execution was successful
+     * @param agentName имя агента
+     * @param executionTime время выполнения в миллисекундах
+     * @param success было ли выполнение успешным
      */
     public void recordAgentExecution(String agentName, long executionTime, boolean success) {
         agentExecutionCounts.computeIfAbsent(agentName, k -> new AtomicLong(0)).incrementAndGet();
@@ -89,7 +89,7 @@ public class OrchestratorMetrics {
     }
     
     /**
-     * Get current success rate as percentage
+     * Получает текущую частоту успеха в процентах
      */
     public double getSuccessRate() {
         long total = totalAnalysisRequests.get();
@@ -98,7 +98,7 @@ public class OrchestratorMetrics {
     }
     
     /**
-     * Get current failure rate as percentage
+     * Получает текущую частоту неудач в процентах
      */
     public double getFailureRate() {
         long total = totalAnalysisRequests.get();
@@ -107,7 +107,7 @@ public class OrchestratorMetrics {
     }
     
     /**
-     * Get average execution time in milliseconds
+     * Получает среднее время выполнения в миллисекундах
      */
     public double getAverageExecutionTime() {
         long successful = successfulAnalysis.get();
@@ -129,7 +129,7 @@ public class OrchestratorMetrics {
     }
     
     /**
-     * Get agent-specific average execution time
+     * Получает среднее время выполнения для конкретного агента
      */
     public double getAgentAverageExecutionTime(String agentName) {
         AtomicLong executions = agentExecutionCounts.get(agentName);
@@ -142,7 +142,7 @@ public class OrchestratorMetrics {
     }
     
     /**
-     * Log comprehensive metrics summary
+     * Логирует комплексную сводку метрик
      */
     public void logMetricsSummary() {
         logger.info("=== Orchestrator Metrics Summary ===");
@@ -161,35 +161,35 @@ public class OrchestratorMetrics {
     }
     
     /**
-     * Get all tracked agent names
+     * Получает все отслеживаемые имена агентов
      */
     public java.util.Set<String> getTrackedAgents() {
         return agentExecutionCounts.keySet();
     }
     
     /**
-     * Get total analysis requests count
+     * Получает общее количество запросов анализа
      */
     public long getTotalAnalysisRequests() {
         return totalAnalysisRequests.get();
     }
     
     /**
-     * Get successful analysis count
+     * Получает количество успешных анализов
      */
     public long getSuccessfulAnalysis() {
         return successfulAnalysis.get();
     }
     
     /**
-     * Get failed analysis count
+     * Получает количество неудачных анализов
      */
     public long getFailedAnalysis() {
         return failedAnalysis.get();
     }
     
     /**
-     * Get agent execution count for specific agent
+     * Получает количество выполнений для конкретного агента
      */
     public long getAgentExecutionCount(String agentName) {
         AtomicLong count = agentExecutionCounts.get(agentName);
@@ -197,21 +197,21 @@ public class OrchestratorMetrics {
     }
     
     /**
-     * Get uptime since last reset in milliseconds
+     * Получает время работы с момента последнего сброса в миллисекундах
      */
     public long getUptimeMs() {
         return System.currentTimeMillis() - lastResetTime;
     }
     
     /**
-     * Get last reset time
+     * Получает время последнего сброса
      */
     public long getLastResetTime() {
         return lastResetTime;
     }
     
     /**
-     * Reset all metrics
+     * Сбрасывает все метрики
      */
     public void reset() {
         totalAnalysisRequests.set(0);

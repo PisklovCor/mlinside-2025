@@ -13,7 +13,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import java.io.IOException;
 
 /**
- * Interceptor for rate limiting API requests
+ * Интерцептор для ограничения скорости API запросов
  */
 @Component
 public class RateLimitInterceptor implements HandlerInterceptor {
@@ -30,14 +30,14 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         String clientIp = getClientIpAddress(request);
         String endpoint = request.getRequestURI();
         
-        logger.debug("Rate limit check for IP: {} on endpoint: {}", clientIp, endpoint);
+        logger.debug("Проверка ограничения скорости для IP: {} на эндпоинте: {}", clientIp, endpoint);
         
         if (bucket.tryConsume(1)) {
-            logger.debug("Rate limit passed for IP: {}", clientIp);
+            logger.debug("Ограничение скорости пройдено для IP: {}", clientIp);
             return true;
         }
         
-        logger.warn("Rate limit exceeded for IP: {} on endpoint: {}", clientIp, endpoint);
+        logger.warn("Превышено ограничение скорости для IP: {} на эндпоинте: {}", clientIp, endpoint);
         
         response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -48,7 +48,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             );
             response.getWriter().write(errorResponse);
         } catch (IOException e) {
-            logger.error("Error writing rate limit response", e);
+            logger.error("Ошибка записи ответа об ограничении скорости", e);
         }
         
         return false;

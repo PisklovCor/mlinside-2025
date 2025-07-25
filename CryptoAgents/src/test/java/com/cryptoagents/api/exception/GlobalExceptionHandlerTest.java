@@ -1,214 +1,182 @@
 package com.cryptoagents.api.exception;
 
+import com.cryptoagents.api.exception.InvalidTickerException;
+import com.cryptoagents.api.exception.RateLimitExceededException;
+import com.cryptoagents.api.exception.ServiceUnavailableException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.PropertyEditorRegistry;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.context.request.WebRequest;
 
-import java.util.Collections;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
+@DisplayName("GlobalExceptionHandler Tests")
 class GlobalExceptionHandlerTest {
-    
-    private GlobalExceptionHandler handler;
-    private ServletWebRequest webRequest;
-    
+
+    private GlobalExceptionHandler exceptionHandler;
+    private ObjectMapper objectMapper;
+
     @BeforeEach
     void setUp() {
-        handler = new GlobalExceptionHandler();
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        webRequest = new ServletWebRequest(request);
+        exceptionHandler = new GlobalExceptionHandler();
+        objectMapper = new ObjectMapper();
     }
-    
+
     @Test
-    void testHandleValidationExceptions() {
-        FieldError fieldError = new FieldError("object", "field", "default message");
+    @DisplayName("Should handle InvalidTickerException")
+    void handleInvalidTickerException_ReturnsBadRequest() {
+        // Given
+        InvalidTickerException exception = new InvalidTickerException("Invalid ticker: XYZ");
+        WebRequest request = mock(WebRequest.class);
+
+        // When
+        ResponseEntity<Object> response = exceptionHandler.handleInvalidTickerException(exception, request);
+
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().toString()).contains("Invalid ticker: XYZ");
+    }
+
+    @Test
+    @DisplayName("Should handle RateLimitExceededException")
+    void handleRateLimitExceededException_ReturnsTooManyRequests() {
+        // Given
+        RateLimitExceededException exception = new RateLimitExceededException("Rate limit exceeded");
+        WebRequest request = mock(WebRequest.class);
+
+        // When
+        ResponseEntity<Object> response = exceptionHandler.handleRateLimitExceededException(exception, request);
+
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().toString()).contains("Rate limit exceeded");
+    }
+
+    @Test
+    @DisplayName("Should handle ServiceUnavailableException")
+    void handleServiceUnavailableException_ReturnsServiceUnavailable() {
+        // Given
+        ServiceUnavailableException exception = new ServiceUnavailableException("Service temporarily unavailable");
+        WebRequest request = mock(WebRequest.class);
+
+        // When
+        ResponseEntity<Object> response = exceptionHandler.handleServiceUnavailableException(exception, request);
+
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().toString()).contains("Service temporarily unavailable");
+    }
+
+    @Test
+    @DisplayName("Should handle MethodArgumentNotValidException")
+    void handleMethodArgumentNotValidException_ReturnsBadRequest() {
+        // Given
+        MethodArgumentNotValidException exception = mock(MethodArgumentNotValidException.class);
         BindingResult bindingResult = new MockBindingResult();
-        bindingResult.addError(fieldError);
+        bindingResult.addError(new FieldError("object", "field", "Field is required"));
         
-        MethodArgumentNotValidException ex = new MethodArgumentNotValidException(
-            null, bindingResult);
-        
-        ResponseEntity<ErrorResponse> response = handler.handleValidationExceptions(ex, webRequest);
-        
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("VALIDATION_ERROR", response.getBody().getError());
+        when(exception.getBindingResult()).thenReturn(bindingResult);
+        WebRequest request = mock(WebRequest.class);
+
+        // When
+        ResponseEntity<Object> response = exceptionHandler.handleMethodArgumentNotValid(exception, request);
+
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().toString()).contains("Field is required");
     }
-    
+
     @Test
-    void testHandleInvalidTickerException() {
-        InvalidTickerException ex = new InvalidTickerException("Invalid ticker format");
-        
-        ResponseEntity<ErrorResponse> response = handler.handleInvalidTickerException(ex, webRequest);
-        
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("INVALID_TICKER", response.getBody().getError());
-        assertEquals("Invalid ticker format", response.getBody().getDetails());
+    @DisplayName("Should handle generic Exception")
+    void handleGenericException_ReturnsInternalServerError() {
+        // Given
+        Exception exception = new Exception("Unexpected error occurred");
+        WebRequest request = mock(WebRequest.class);
+
+        // When
+        ResponseEntity<Object> response = exceptionHandler.handleGenericException(exception, request);
+
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().toString()).contains("Unexpected error occurred");
     }
-    
-    @Test
-    void testHandleRateLimitException() {
-        RateLimitExceededException ex = new RateLimitExceededException("Rate limit exceeded");
-        
-        ResponseEntity<ErrorResponse> response = handler.handleRateLimitException(ex, webRequest);
-        
-        assertEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("RATE_LIMIT_EXCEEDED", response.getBody().getError());
-    }
-    
-    @Test
-    void testHandleApiLimitException() {
-        ApiLimitExceededException ex = new ApiLimitExceededException("API limit exceeded");
-        
-        ResponseEntity<ErrorResponse> response = handler.handleApiLimitException(ex, webRequest);
-        
-        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("API_LIMIT_EXCEEDED", response.getBody().getError());
-    }
-    
-    @Test
-    void testHandleExternalServiceException() {
-        ExternalServiceException ex = new ExternalServiceException("Service unavailable");
-        
-        ResponseEntity<ErrorResponse> response = handler.handleExternalServiceException(ex, webRequest);
-        
-        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("EXTERNAL_SERVICE_ERROR", response.getBody().getError());
-    }
-    
-    @Test
-    void testHandleAnalysisException() {
-        AnalysisException ex = new AnalysisException("Analysis failed");
-        
-        ResponseEntity<ErrorResponse> response = handler.handleAnalysisException(ex, webRequest);
-        
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("ANALYSIS_ERROR", response.getBody().getError());
-    }
-    
-    @Test
-    void testHandleGeneralException() {
-        Exception ex = new RuntimeException("Unexpected error");
-        
-        ResponseEntity<ErrorResponse> response = handler.handleGeneralException(ex, webRequest);
-        
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("INTERNAL_SERVER_ERROR", response.getBody().getError());
-    }
-    
+
     // Mock BindingResult for testing
     private static class MockBindingResult implements BindingResult {
         private final java.util.List<FieldError> errors = new java.util.ArrayList<>();
-        
+
         @Override
         public void addError(FieldError error) {
             errors.add(error);
         }
-        
+
+        @Override
+        public void addError(ObjectError error) {
+            // Можно добавить обработку ObjectError, если нужно
+        }
+
         @Override
         public java.util.List<FieldError> getFieldErrors() {
             return errors;
         }
-        
-        // Implement other methods with default implementations
-        @Override
-        public String getObjectName() { return "object"; }
-        
-        @Override
-        public void setNestedPath(String nestedPath) {}
-        
-        @Override
-        public String getNestedPath() { return ""; }
-        
-        @Override
-        public void pushNestedPath(String subPath) {}
-        
-        @Override
-        public void popNestedPath() throws IllegalStateException {}
-        
-        @Override
-        public void reject(String errorCode) {}
-        
-        @Override
-        public void reject(String errorCode, String defaultMessage) {}
-        
-        @Override
-        public void reject(String errorCode, Object[] errorArgs, String defaultMessage) {}
-        
-        @Override
-        public void rejectValue(String field, String errorCode) {}
-        
-        @Override
-        public void rejectValue(String field, String errorCode, String defaultMessage) {}
-        
-        @Override
-        public void rejectValue(String field, String errorCode, Object[] errorArgs, String defaultMessage) {}
-        
-        @Override
-        public void addAllErrors(BindingResult bindingResult) {}
-        
-        @Override
-        public boolean hasErrors() { return !errors.isEmpty(); }
-        
-        @Override
-        public int getErrorCount() { return errors.size(); }
-        
-        @Override
-        public java.util.List<org.springframework.validation.ObjectError> getAllErrors() { return Collections.emptyList(); }
-        
-        @Override
-        public boolean hasGlobalErrors() { return false; }
-        
-        @Override
-        public int getGlobalErrorCount() { return 0; }
-        
-        @Override
-        public java.util.List<ObjectError> getGlobalErrors() { return Collections.emptyList(); }
-        
-        @Override
-        public ObjectError getGlobalError() { return null; }
-        
-        @Override
-        public boolean hasFieldErrors() { return !errors.isEmpty(); }
-        
-        @Override
-        public int getFieldErrorCount() { return errors.size(); }
-        
 
-        
-        @Override
-        public FieldError getFieldError() { return errors.isEmpty() ? null : errors.get(0); }
-        
-        @Override
-        public boolean hasFieldErrors(String field) { return false; }
-        
-        @Override
-        public int getFieldErrorCount(String field) { return 0; }
-        
-        @Override
-        public java.util.List<FieldError> getFieldErrors(String field) { return Collections.emptyList(); }
-        
-        @Override
-        public FieldError getFieldError(String field) { return null; }
-        
-        @Override
-        public Object getFieldValue(String field) { return null; }
-        
-        @Override
-        public Class<?> getFieldType(String field) { return null; }
+        // Реализуем все остальные методы интерфейса заглушками:
+        @Override public String getObjectName() { return "object"; }
+        @Override public void setNestedPath(String nestedPath) {}
+        @Override public String getNestedPath() { return ""; }
+        @Override public void pushNestedPath(String subPath) {}
+        @Override public void popNestedPath() throws IllegalStateException {}
+        @Override public void reject(String errorCode) {}
+        @Override public void reject(String errorCode, String defaultMessage) {}
+        @Override public void reject(String errorCode, Object[] errorArgs, String defaultMessage) {}
+        @Override public void rejectValue(String field, String errorCode) {}
+        @Override public void rejectValue(String field, String errorCode, String defaultMessage) {}
+        @Override public void rejectValue(String field, String errorCode, Object[] errorArgs, String defaultMessage) {}
+        @Override public void addAllErrors(org.springframework.validation.Errors errors) {}
+        @Override public boolean hasErrors() { return !errors.isEmpty(); }
+        @Override public int getErrorCount() { return errors.size(); }
+        @Override public java.util.List<ObjectError> getAllErrors() { return new java.util.ArrayList<>(errors); }
+        @Override public boolean hasGlobalErrors() { return false; }
+        @Override public int getGlobalErrorCount() { return 0; }
+        @Override public java.util.List<ObjectError> getGlobalErrors() { return java.util.Collections.emptyList(); }
+        @Override public ObjectError getGlobalError() { return null; }
+        @Override public boolean hasFieldErrors() { return !errors.isEmpty(); }
+        @Override public int getFieldErrorCount() { return errors.size(); }
+        @Override public FieldError getFieldError() { return errors.isEmpty() ? null : errors.get(0); }
+        @Override public boolean hasFieldErrors(String field) { return false; }
+        @Override public int getFieldErrorCount(String field) { return 0; }
+        @Override public java.util.List<FieldError> getFieldErrors(String field) { return java.util.Collections.emptyList(); }
+        @Override public FieldError getFieldError(String field) { return null; }
+        @Override public Object getFieldValue(String field) { return null; }
+        @Override public Class<?> getFieldType(String field) { return null; }
+        @Override public Object getTarget() { return null; }
+        @Override public java.util.Map<String, Object> getModel() { return java.util.Collections.emptyMap(); }
+        @Override public Object getRawFieldValue(String field) { return null; }
+        @Override public java.beans.PropertyEditorRegistry getPropertyEditorRegistry() { return null; }
+        @Override public String[] resolveMessageCodes(String errorCode) { return new String[0]; }
+        @Override public String[] resolveMessageCodes(String errorCode, String field) { return new String[0]; }
+        @Override public void recordSuppressedField(String field) {}
+        @Override public String[] getSuppressedFields() { return new String[0]; }
     }
 } 

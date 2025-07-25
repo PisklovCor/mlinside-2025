@@ -12,75 +12,75 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository interface for TraderReport entities.
+ * Интерфейс репозитория для сущностей TraderReport.
  * 
- * This repository provides specialized query methods for trading recommendations,
- * position management, and trading strategy analysis.
+ * Этот репозиторий предоставляет специализированные методы запросов для торговых рекомендаций,
+ * управления позициями и анализа торговых стратегий.
  */
 @Repository
 public interface TraderReportRepository extends JpaRepository<TraderReport, Long> {
     
     /**
-     * Find trader reports by trading action.
+     * Находит отчеты трейдера по торговому действию.
      *
-     * @param actionRecommendation the trading action to filter by
-     * @return list of trader reports with the specified action
+     * @param actionRecommendation торговое действие для фильтрации
+     * @return список отчетов трейдера с указанным действием
      */
     List<TraderReport> findByActionRecommendation(TraderReport.TradingAction actionRecommendation);
     
     /**
-     * Find trader reports for a ticker by trading action.
+     * Находит отчеты трейдера для тикера по торговому действию.
      *
-     * @param ticker the cryptocurrency ticker symbol
-     * @param actionRecommendation the trading action to filter by
-     * @return list of trader reports for the ticker with specified action
+     * @param ticker символ тикера криптовалюты
+     * @param actionRecommendation торговое действие для фильтрации
+     * @return список отчетов трейдера для тикера с указанным действием
      */
     List<TraderReport> findByTickerAndActionRecommendation(String ticker, TraderReport.TradingAction actionRecommendation);
     
     /**
-     * Find trader reports by order type.
+     * Находит отчеты трейдера по типу ордера.
      *
-     * @param orderType the order type to filter by
-     * @return list of trader reports with the specified order type
+     * @param orderType тип ордера для фильтрации
+     * @return список отчетов трейдера с указанным типом ордера
      */
     List<TraderReport> findByOrderType(TraderReport.OrderType orderType);
     
     /**
-     * Find trader reports by time in force.
+     * Находит отчеты трейдера по времени действия.
      *
-     * @param timeInForce the time in force parameter to filter by
-     * @return list of trader reports with the specified time in force
+     * @param timeInForce параметр времени действия для фильтрации
+     * @return список отчетов трейдера с указанным временем действия
      */
     List<TraderReport> findByTimeInForce(TraderReport.TimeInForce timeInForce);
     
     /**
-     * Find the most recent trader report for a ticker.
+     * Находит самый последний отчет трейдера для тикера.
      *
-     * @param ticker the cryptocurrency ticker symbol
-     * @return optional containing the most recent trader report
+     * @param ticker символ тикера криптовалюты
+     * @return optional, содержащий самый последний отчет трейдера
      */
     Optional<TraderReport> findFirstByTickerOrderByAnalysisTimeDesc(String ticker);
     
     /**
-     * Find all BUY recommendations.
+     * Находит все рекомендации на покупку.
      *
-     * @return list of trader reports with BUY action
+     * @return список отчетов трейдера с действием BUY
      */
     @Query("SELECT tr FROM TraderReport tr WHERE tr.actionRecommendation = 'BUY'")
     List<TraderReport> findBuyRecommendations();
     
     /**
-     * Find all SELL recommendations.
+     * Находит все рекомендации на продажу.
      *
-     * @return list of trader reports with SELL action
+     * @return список отчетов трейдера с действием SELL
      */
     @Query("SELECT tr FROM TraderReport tr WHERE tr.actionRecommendation = 'SELL'")
     List<TraderReport> findSellRecommendations();
     
     /**
-     * Find all HOLD recommendations.
+     * Находит все рекомендации на удержание.
      *
-     * @return list of trader reports with HOLD action
+     * @return список отчетов трейдера с действием HOLD
      */
     @Query("SELECT tr FROM TraderReport tr WHERE tr.actionRecommendation = 'HOLD'")
     List<TraderReport> findHoldRecommendations();

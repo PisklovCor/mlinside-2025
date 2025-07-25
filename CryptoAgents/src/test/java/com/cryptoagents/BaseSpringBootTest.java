@@ -1,10 +1,6 @@
 package com.cryptoagents;
 
-import com.cryptoagents.api.CryptoAnalysisController;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -13,24 +9,21 @@ import org.springframework.test.context.ActiveProfiles;
  * Содержит общую конфигурацию для тестирования.
  */
 @Slf4j
-
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-@AutoConfigureMockMvc
 public abstract class BaseSpringBootTest {
 
     /**
      * Базовая инициализация для всех тестов
      */
     protected void logTestStart(String testName) {
-        log.info("🧪 Starting test: {}", testName);
+        System.out.println("🧪 Начало теста: " + testName);
     }
     
     /**
      * Базовое завершение для всех тестов
      */
     protected void logTestEnd(String testName) {
-        log.info("✅ Test completed: {}", testName);
+        System.out.println("✅ Тест завершен: " + testName);
     }
 } 

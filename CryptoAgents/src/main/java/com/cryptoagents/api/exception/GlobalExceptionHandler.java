@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Global exception handler for centralized error processing
+ * Глобальный обработчик исключений для централизованной обработки ошибок
  */
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -24,7 +24,7 @@ public class GlobalExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     
     /**
-     * Handle validation errors
+     * Обработка ошибок валидации
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(
@@ -39,17 +39,17 @@ public class GlobalExceptionHandler {
         
         ErrorResponse errorResponse = new ErrorResponse(
             "VALIDATION_ERROR",
-            "Input validation failed",
+            "Ошибка валидации входных данных",
             fieldErrors.toString(),
             LocalDateTime.now()
         );
         
-        logger.warn("Validation error for request {}: {}", request.getDescription(false), fieldErrors);
+        logger.warn("Ошибка валидации для запроса {}: {}", request.getDescription(false), fieldErrors);
         return ResponseEntity.badRequest().body(errorResponse);
     }
     
     /**
-     * Handle invalid ticker exceptions
+     * Обработка исключений неверного тикера
      */
     @ExceptionHandler(InvalidTickerException.class)
     public ResponseEntity<ErrorResponse> handleInvalidTickerException(
@@ -57,17 +57,17 @@ public class GlobalExceptionHandler {
         
         ErrorResponse errorResponse = new ErrorResponse(
             "INVALID_TICKER",
-            "Invalid cryptocurrency ticker provided",
+            "Предоставлен неверный тикер криптовалюты",
             ex.getMessage(),
             LocalDateTime.now()
         );
         
-        logger.warn("Invalid ticker error for request {}: {}", request.getDescription(false), ex.getMessage());
+        logger.warn("Ошибка неверного тикера для запроса {}: {}", request.getDescription(false), ex.getMessage());
         return ResponseEntity.badRequest().body(errorResponse);
     }
     
     /**
-     * Handle rate limit exceptions
+     * Обработка исключений превышения лимита запросов
      */
     @ExceptionHandler(RateLimitExceededException.class)
     public ResponseEntity<ErrorResponse> handleRateLimitException(
@@ -75,17 +75,17 @@ public class GlobalExceptionHandler {
         
         ErrorResponse errorResponse = new ErrorResponse(
             "RATE_LIMIT_EXCEEDED",
-            "Too many requests. Please try again later.",
+            "Слишком много запросов. Попробуйте позже.",
             ex.getMessage(),
             LocalDateTime.now()
         );
         
-        logger.warn("Rate limit exceeded for request {}: {}", request.getDescription(false), ex.getMessage());
+        logger.warn("Превышен лимит запросов для запроса {}: {}", request.getDescription(false), ex.getMessage());
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(errorResponse);
     }
     
     /**
-     * Handle API limit exceptions
+     * Обработка исключений превышения лимита API
      */
     @ExceptionHandler(ApiLimitExceededException.class)
     public ResponseEntity<ErrorResponse> handleApiLimitException(
@@ -93,17 +93,17 @@ public class GlobalExceptionHandler {
         
         ErrorResponse errorResponse = new ErrorResponse(
             "API_LIMIT_EXCEEDED",
-            "External API rate limit exceeded",
+            "Превышен лимит запросов внешнего API",
             ex.getMessage(),
             LocalDateTime.now()
         );
         
-        logger.warn("API limit exceeded for request {}: {}", request.getDescription(false), ex.getMessage());
+        logger.warn("Превышен лимит запросов внешнего API для запроса {}: {}", request.getDescription(false), ex.getMessage());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(errorResponse);
     }
     
     /**
-     * Handle external service exceptions
+     * Обработка исключений внешних сервисов
      */
     @ExceptionHandler(ExternalServiceException.class)
     public ResponseEntity<ErrorResponse> handleExternalServiceException(
@@ -111,17 +111,17 @@ public class GlobalExceptionHandler {
         
         ErrorResponse errorResponse = new ErrorResponse(
             "EXTERNAL_SERVICE_ERROR",
-            "External service temporarily unavailable",
+            "Внешний сервис временно недоступен",
             ex.getMessage(),
             LocalDateTime.now()
         );
         
-        logger.error("External service error for request {}: {}", request.getDescription(false), ex.getMessage(), ex);
+        logger.error("Ошибка внешнего сервиса для запроса {}: {}", request.getDescription(false), ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(errorResponse);
     }
     
     /**
-     * Handle analysis exceptions
+     * Обработка исключений анализа
      */
     @ExceptionHandler(AnalysisException.class)
     public ResponseEntity<ErrorResponse> handleAnalysisException(
@@ -129,17 +129,17 @@ public class GlobalExceptionHandler {
         
         ErrorResponse errorResponse = new ErrorResponse(
             "ANALYSIS_ERROR",
-            "Analysis processing failed",
+            "Обработка анализа не удалась",
             ex.getMessage(),
             LocalDateTime.now()
         );
         
-        logger.error("Analysis error for request {}: {}", request.getDescription(false), ex.getMessage(), ex);
+        logger.error("Ошибка анализа для запроса {}: {}", request.getDescription(false), ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
     
     /**
-     * Handle general exceptions
+     * Обработка общих исключений
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(
@@ -147,12 +147,12 @@ public class GlobalExceptionHandler {
         
         ErrorResponse errorResponse = new ErrorResponse(
             "INTERNAL_SERVER_ERROR",
-            "An unexpected error occurred",
-            "Please try again later or contact support if the problem persists",
+            "Произошла неожиданная ошибка",
+            "Пожалуйста, попробуйте позже или обратитесь в поддержку, если проблема не исчезнет",
             LocalDateTime.now()
         );
         
-        logger.error("Unexpected error for request {}: {}", request.getDescription(false), ex.getMessage(), ex);
+        logger.error("Неожиданная ошибка для запроса {}: {}", request.getDescription(false), ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
 } 

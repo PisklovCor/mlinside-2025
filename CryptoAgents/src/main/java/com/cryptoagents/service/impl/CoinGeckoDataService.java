@@ -45,7 +45,7 @@ public class CoinGeckoDataService implements CryptoDataService {
     private final CryptoDataFallbackService fallbackService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     
-    // Simple in-memory cache for supported cryptocurrencies
+    // Простой кэш в памяти для поддерживаемых криптовалют
     private final Map<String, String> tickerToIdMapping = new ConcurrentHashMap<>();
     private volatile LocalDateTime lastMappingUpdate = null;
     private static final long MAPPING_CACHE_DURATION_HOURS = 24;

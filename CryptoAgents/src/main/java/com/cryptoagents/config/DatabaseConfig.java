@@ -16,17 +16,17 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 /**
- * Database configuration class for PostgreSQL setup and validation.
+ * Класс конфигурации базы данных для настройки и валидации PostgreSQL.
  * 
- * This configuration validates database connectivity, logs database information,
- * and provides environment-specific settings for development and production.
+ * Эта конфигурация проверяет подключение к базе данных, логирует информацию о базе данных
+ * и предоставляет настройки для различных сред разработки и продакшена.
  */
 @Slf4j
 @Configuration
 public class DatabaseConfig {
 
     /**
-     * Database connection validator that runs on startup.
+     * Валидатор подключения к базе данных, который запускается при старте.
      */
     @Slf4j
     @Component
@@ -43,38 +43,38 @@ public class DatabaseConfig {
         }
 
         private void validateDatabaseConnection() {
-            log.info("Validating database connection...");
+            log.info("Проверка подключения к базе данных...");
             
             try (Connection connection = dataSource.getConnection()) {
                 if (connection.isValid(5)) {
-                    log.info("✅ Database connection is valid");
+                    log.info("✅ Подключение к базе данных корректно");
                 } else {
-                    log.error("❌ Database connection validation failed");
-                    throw new RuntimeException("Database connection is not valid");
+                    log.error("❌ Проверка подключения к базе данных не удалась");
+                    throw new RuntimeException("Подключение к базе данных некорректно");
                 }
             } catch (SQLException e) {
-                log.error("❌ Failed to validate database connection: {}", e.getMessage());
-                throw new RuntimeException("Could not establish database connection", e);
+                log.error("❌ Не удалось проверить подключение к базе данных: {}", e.getMessage());
+                throw new RuntimeException("Не удалось установить подключение к базе данных", e);
             }
         }
 
         private void logDatabaseInfo() {
             try {
                 String version = jdbcTemplate.queryForObject("SELECT version()", String.class);
-                log.info("Connected to database: {}", version);
+                log.info("Подключено к базе данных: {}", version);
                 
-                // Verify required database exists
+                // Проверка существования требуемой базы данных
                 String currentDatabase = jdbcTemplate.queryForObject("SELECT current_database()", String.class);
-                log.info("Current database: {}", currentDatabase);
+                log.info("Текущая база данных: {}", currentDatabase);
                 
             } catch (Exception e) {
-                log.warn("Could not retrieve database information: {}", e.getMessage());
+                log.warn("Не удалось получить информацию о базе данных: {}", e.getMessage());
             }
         }
     }
 
     /**
-     * Database properties configuration for environment-specific settings.
+     * Конфигурация свойств базы данных для настроек различных сред.
      */
     @Data
     @Component
@@ -88,7 +88,7 @@ public class DatabaseConfig {
     }
 
     /**
-     * Development profile specific configuration.
+     * Конфигурация для профиля разработки.
      */
     @Slf4j
     @Configuration
@@ -105,7 +105,7 @@ public class DatabaseConfig {
     }
 
     /**
-     * Production profile specific configuration.
+     * Конфигурация для профиля продакшена.
      */
     @Slf4j
     @Configuration
