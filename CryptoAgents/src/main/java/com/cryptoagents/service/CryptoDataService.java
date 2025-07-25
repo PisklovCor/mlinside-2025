@@ -10,70 +10,69 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Service interface for cryptocurrency data retrieval.
+ * Сервис для получения данных о криптовалютах из внешних API.
  * 
- * This interface defines methods for fetching real-time and historical
- * cryptocurrency data from external APIs (such as CoinGecko).
- * Implementations should handle error cases, caching, and rate limiting.
+ * Этот интерфейс определяет методы для получения текущих цен, исторических данных,
+ * рыночной информации и базовой информации о криптовалютах.
  */
 public interface CryptoDataService {
-
+    
     /**
-     * Retrieves the current price for a specific cryptocurrency.
+     * Получает текущую цену криптовалюты в USD.
      * 
-     * @param ticker The cryptocurrency ticker symbol (e.g., "BTC", "ETH")
-     * @return The current price in USD, or empty if not available
-     * @throws IllegalArgumentException if ticker is null or empty
+     * @param ticker Символ тикера криптовалюты (например, "BTC", "ETH")
+     * @return Текущая цена в USD, или пустое значение, если недоступна
+     * @throws IllegalArgumentException если тикер равен null или пустой
      */
     Optional<BigDecimal> getCurrentPrice(String ticker);
-
+    
     /**
-     * Retrieves historical price data for a cryptocurrency over a specified period.
+     * Получает исторические данные о ценах криптовалюты.
      * 
-     * @param ticker The cryptocurrency ticker symbol
-     * @param period The time period for historical data
-     * @return Historical data containing price points, or empty if not available
-     * @throws IllegalArgumentException if ticker is null/empty or period is null
+     * @param ticker Символ тикера криптовалюты
+     * @param period Временной период для исторических данных
+     * @return Исторические данные, содержащие точки цен, или пустое значение, если недоступны
+     * @throws IllegalArgumentException если тикер равен null/пустой или период равен null
      */
     Optional<HistoricalData> getHistoricalData(String ticker, TimePeriod period);
-
+    
     /**
-     * Retrieves comprehensive market data for a cryptocurrency.
+     * Получает рыночные данные криптовалюты.
      * 
-     * @param ticker The cryptocurrency ticker symbol
-     * @return Market data including price, volume, market cap, etc., or empty if not available
-     * @throws IllegalArgumentException if ticker is null or empty
+     * @param ticker Символ тикера криптовалюты
+     * @return Рыночные данные, включающие цену, объем, рыночную капитализацию и т.д., или пустое значение, если недоступны
+     * @throws IllegalArgumentException если тикер равен null или пустой
      */
     Optional<MarketData> getMarketData(String ticker);
-
+    
     /**
-     * Retrieves basic cryptocurrency information.
+     * Получает базовую информацию о криптовалюте.
      * 
-     * @param ticker The cryptocurrency ticker symbol
-     * @return Basic cryptocurrency info, or empty if not available
-     * @throws IllegalArgumentException if ticker is null or empty
+     * @param ticker Символ тикера криптовалюты
+     * @return Базовая информация о криптовалюте, или пустое значение, если недоступна
+     * @throws IllegalArgumentException если тикер равен null или пустой
      */
     Optional<CryptoCurrency> getCryptoInfo(String ticker);
-
+    
     /**
-     * Retrieves a list of supported cryptocurrencies.
+     * Получает список поддерживаемых криптовалют.
      * 
-     * @return List of supported cryptocurrencies with basic info
+     * @return Список поддерживаемых криптовалют с базовой информацией
      */
     List<CryptoCurrency> getSupportedCryptocurrencies();
-
+    
     /**
-     * Checks if the external API service is currently available.
+     * Проверяет доступность сервиса.
      * 
-     * @return true if the service is available, false otherwise
+     * @return true, если сервис доступен, false в противном случае
      */
     boolean isServiceAvailable();
-
+    
     /**
-     * Validates if a ticker symbol is supported by the service.
+     * Проверяет, поддерживается ли указанный тикер.
      * 
-     * @param ticker The cryptocurrency ticker symbol to validate
-     * @return true if the ticker is supported, false otherwise
+     * @param ticker Символ тикера криптовалюты для валидации
+     * @return true, если тикер поддерживается, false в противном случае
      */
     boolean isTickerSupported(String ticker);
 } 

@@ -256,7 +256,8 @@ class OrchestratorMetricsTest extends BaseSpringBootTest {
             long endTime = System.currentTimeMillis();
 
             // Тогда
-            assertTrue(uptime <= (endTime - startTime + 1000)); // Allow some tolerance
+            // Проверяем, что время работы не превышает ожидаемое с небольшим допуском
+            assertTrue(uptime <= (endTime - startTime + 1000)); // Допускаем некоторую погрешность
         }
 
         @Test

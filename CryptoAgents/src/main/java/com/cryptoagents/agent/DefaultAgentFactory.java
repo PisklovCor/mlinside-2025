@@ -12,10 +12,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Default implementation of AgentFactory.
+ * Реализация по умолчанию для AgentFactory.
  * 
- * This implementation creates agent instances using Spring's ApplicationContext
- * to leverage dependency injection and manage the agent lifecycle properly.
+ * Эта реализация создает экземпляры агентов, используя Spring ApplicationContext
+ * для использования dependency injection и правильного управления жизненным циклом агентов.
  */
 @Component
 public class DefaultAgentFactory implements AgentFactory {
@@ -31,7 +31,7 @@ public class DefaultAgentFactory implements AgentFactory {
     
     @Override
     public Agent createAgent(Agent.AgentType agentType) {
-        logger.debug("Creating agent for type: {}", agentType);
+        logger.debug("Создание агента для типа: {}", agentType);
         
         try {
             switch (agentType) {
@@ -42,11 +42,11 @@ public class DefaultAgentFactory implements AgentFactory {
                 case TRADER:
                     return applicationContext.getBean(MockTraderAgent.class);
                 default:
-                    throw new IllegalArgumentException("Unsupported agent type: " + agentType);
+                    throw new IllegalArgumentException("Неподдерживаемый тип агента: " + agentType);
             }
         } catch (Exception e) {
-            logger.error("Failed to create agent for type {}: {}", agentType, e.getMessage(), e);
-            throw new IllegalArgumentException("Failed to create agent for type " + agentType, e);
+            logger.error("Не удалось создать агента для типа {}: {}", agentType, e.getMessage(), e);
+            throw new IllegalArgumentException("Не удалось создать агента для типа " + agentType, e);
         }
     }
     
@@ -56,7 +56,7 @@ public class DefaultAgentFactory implements AgentFactory {
         try {
             agentType = Agent.AgentType.valueOf(agentName.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Unknown agent name: " + agentName, e);
+            throw new IllegalArgumentException("Неизвестное имя агента: " + agentName, e);
         }
         
         return createAgent(agentType);
@@ -81,11 +81,11 @@ public class DefaultAgentFactory implements AgentFactory {
     @Override
     public boolean isAgentTypeSupported(Agent.AgentType agentType) {
         try {
-            // Try to create the agent to check if it's supported
+            // Попытка создать агента для проверки поддержки
             Agent agent = createAgent(agentType);
             return agent != null;
         } catch (Exception e) {
-            logger.debug("Agent type {} is not supported due to error: {}", agentType, e.getMessage());
+            logger.debug("Тип агента {} не поддерживается из-за ошибки: {}", agentType, e.getMessage());
             return false;
         }
     }

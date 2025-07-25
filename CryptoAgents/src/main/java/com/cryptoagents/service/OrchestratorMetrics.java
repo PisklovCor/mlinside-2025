@@ -1,77 +1,86 @@
 package com.cryptoagents.service;
 
-import com.cryptoagents.model.dto.MetricsResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.Map;
-import java.util.HashMap;
+import java.time.LocalDateTime;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.Map;
 
 /**
- * Сборщик метрик для мониторинга производительности AgentOrchestrator.
+ * Компонент для сбора и отслеживания метрик производительности оркестратора агентов.
  * 
- * Этот класс отслеживает различные метрики производительности и частоту ошибок
- * для помощи в мониторинге состояния и эффективности процесса оркестрации.
+ * Этот класс предоставляет методы для записи времени выполнения, количества запросов,
+ * ошибок и других метрик, связанных с анализом криптовалют.
  */
+@Slf4j
+@Component
 public class OrchestratorMetrics {
     
-    private static final Logger logger = LoggerFactory.getLogger(OrchestratorMetrics.class);
-    
-    // Счетчики операций
+    // Счетчики запросов
     private final AtomicLong totalAnalysisRequests = new AtomicLong(0);
-    private final AtomicLong successfulAnalysis = new AtomicLong(0);
-    private final AtomicLong failedAnalysis = new AtomicLong(0);
+    private final AtomicLong successfulAnalysisRequests = new AtomicLong(0);
+    private final AtomicLong failedAnalysisRequests = new AtomicLong(0);
     
-    // Агент-специфичные метрики
-    private final Map<String, AtomicLong> agentExecutionCounts = new ConcurrentHashMap<>();
-    private final Map<String, AtomicLong> agentFailureCounts = new ConcurrentHashMap<>();
-    private final Map<String, AtomicLong> agentExecutionTimes = new ConcurrentHashMap<>();
-    
-    // Метрики производительности
+    // Время выполнения
     private final AtomicLong totalExecutionTime = new AtomicLong(0);
-    private volatile long lastResetTime = System.currentTimeMillis();
+    private final AtomicLong averageExecutionTime = new AtomicLong(0);
+    
+    // Метрики по агентам
+    private final Map<String, AtomicLong> agentExecutionCounts = new ConcurrentHashMap<>();
+    private final Map<String, AtomicLong> agentExecutionTimes = new ConcurrentHashMap<>();
+    private final Map<String, AtomicLong> agentErrorCounts = new ConcurrentHashMap<>();
+    
+    // Метрики по тикерам
+    private final Map<String, AtomicLong> tickerAnalysisCounts = new ConcurrentHashMap<>();
+    private final Map<String, AtomicLong> tickerExecutionTimes = new ConcurrentHashMap<>();
+    private final Map<String, AtomicLong> tickerErrorCounts = new ConcurrentHashMap<>();
     
     /**
-     * Записывает начало операции анализа
+     * Записывает начало анализа для указанного тикера.
      * 
      * @param ticker тикер криптовалюты, который анализируется
      */
     public void recordAnalysisStart(String ticker) {
         totalAnalysisRequests.incrementAndGet();
-        logger.debug("Analysis started for ticker: {} (total requests: {})", 
-                ticker, totalAnalysisRequests.get());
+        tickerAnalysisCounts.computeIfAbsent(ticker, k -> new AtomicLong(0)).incrementAndGet();
+        log.debug("Начало анализа для тикера: {}", ticker);
     }
     
     /**
-     * Записывает успешное завершение анализа
+     * Записывает успешное завершение анализа.
      * 
      * @param ticker тикер криптовалюты
      * @param totalTime общее время выполнения в миллисекундах
      */
     public void recordAnalysisSuccess(String ticker, long totalTime) {
-        successfulAnalysis.incrementAndGet();
+        successfulAnalysisRequests.incrementAndGet();
         totalExecutionTime.addAndGet(totalTime);
-        logger.info("Analysis completed successfully for ticker: {} in {}ms (success rate: {:.2f}%)", 
-                ticker, totalTime, getSuccessRate());
+        tickerExecutionTimes.computeIfAbsent(ticker, k -> new AtomicLong(0)).addAndGet(totalTime);
+        
+        // Обновляем среднее время выполнения
+        long totalRequests = totalAnalysisRequests.get();
+        long totalTimeSum = totalExecutionTime.get();
+        averageExecutionTime.set(totalTimeSum / totalRequests);
+        
+        log.debug("Успешный анализ для тикера {} завершен за {} мс", ticker, totalTime);
     }
     
     /**
-     * Записывает неудачный анализ
+     * Записывает неудачное завершение анализа.
      * 
      * @param ticker тикер криптовалюты
      * @param error сообщение об ошибке
      */
     public void recordAnalysisFailure(String ticker, String error) {
-        failedAnalysis.incrementAndGet();
-        logger.warn("Analysis failed for ticker: {} - Error: {} (failure rate: {:.2f}%)", 
-                ticker, error, getFailureRate());
+        failedAnalysisRequests.incrementAndGet();
+        tickerErrorCounts.computeIfAbsent(ticker, k -> new AtomicLong(0)).incrementAndGet();
+        log.warn("Неудачный анализ для тикера {}: {}", ticker, error);
     }
     
     /**
-     * Записывает выполнение агента
+     * Записывает выполнение агента.
      * 
      * @param agentName имя агента
      * @param executionTime время выполнения в миллисекундах
@@ -82,175 +91,168 @@ public class OrchestratorMetrics {
         agentExecutionTimes.computeIfAbsent(agentName, k -> new AtomicLong(0)).addAndGet(executionTime);
         
         if (!success) {
-            agentFailureCounts.computeIfAbsent(agentName, k -> new AtomicLong(0)).incrementAndGet();
+            agentErrorCounts.computeIfAbsent(agentName, k -> new AtomicLong(0)).incrementAndGet();
         }
         
-        logger.debug("Agent {} executed in {}ms (success: {})", agentName, executionTime, success);
+        log.debug("Выполнение агента {}: {} мс, успех: {}", agentName, executionTime, success);
     }
     
     /**
-     * Получает текущую частоту успеха в процентах
-     */
-    public double getSuccessRate() {
-        long total = totalAnalysisRequests.get();
-        if (total == 0) return 0.0;
-        return (successfulAnalysis.get() * 100.0) / total;
-    }
-    
-    /**
-     * Получает текущую частоту неудач в процентах
-     */
-    public double getFailureRate() {
-        long total = totalAnalysisRequests.get();
-        if (total == 0) return 0.0;
-        return (failedAnalysis.get() * 100.0) / total;
-    }
-    
-    /**
-     * Получает среднее время выполнения в миллисекундах
-     */
-    public double getAverageExecutionTime() {
-        long successful = successfulAnalysis.get();
-        if (successful == 0) return 0.0;
-        return totalExecutionTime.get() / (double) successful;
-    }
-    
-    /**
-     * Get agent-specific failure rate
-     */
-    public double getAgentFailureRate(String agentName) {
-        AtomicLong executions = agentExecutionCounts.get(agentName);
-        AtomicLong failures = agentFailureCounts.get(agentName);
-        
-        if (executions == null || executions.get() == 0) return 0.0;
-        if (failures == null) return 0.0;
-        
-        return (failures.get() * 100.0) / executions.get();
-    }
-    
-    /**
-     * Получает среднее время выполнения для конкретного агента
-     */
-    public double getAgentAverageExecutionTime(String agentName) {
-        AtomicLong executions = agentExecutionCounts.get(agentName);
-        AtomicLong totalTime = agentExecutionTimes.get(agentName);
-        
-        if (executions == null || executions.get() == 0) return 0.0;
-        if (totalTime == null) return 0.0;
-        
-        return totalTime.get() / (double) executions.get();
-    }
-    
-    /**
-     * Логирует комплексную сводку метрик
-     */
-    public void logMetricsSummary() {
-        logger.info("=== Orchestrator Metrics Summary ===");
-        logger.info("Total requests: {}, Successful: {}, Failed: {}", 
-                totalAnalysisRequests.get(), successfulAnalysis.get(), failedAnalysis.get());
-        logger.info("Success rate: {:.2f}%, Average execution time: {:.2f}ms", 
-                getSuccessRate(), getAverageExecutionTime());
-        
-        agentExecutionCounts.forEach((agent, count) -> {
-            logger.info("Agent {}: {} executions, {:.2f}% failure rate, {:.2f}ms avg time",
-                    agent, count.get(), getAgentFailureRate(agent), getAgentAverageExecutionTime(agent));
-        });
-        
-        long uptime = System.currentTimeMillis() - lastResetTime;
-        logger.info("Metrics collected over {}ms", uptime);
-    }
-    
-    /**
-     * Получает все отслеживаемые имена агентов
-     */
-    public java.util.Set<String> getTrackedAgents() {
-        return agentExecutionCounts.keySet();
-    }
-    
-    /**
-     * Получает общее количество запросов анализа
+     * Получает общее количество запросов анализа.
+     * 
+     * @return общее количество запросов
      */
     public long getTotalAnalysisRequests() {
         return totalAnalysisRequests.get();
     }
     
     /**
-     * Получает количество успешных анализов
+     * Получает количество успешных запросов анализа.
+     * 
+     * @return количество успешных запросов
      */
-    public long getSuccessfulAnalysis() {
-        return successfulAnalysis.get();
+    public long getSuccessfulAnalysisRequests() {
+        return successfulAnalysisRequests.get();
     }
     
     /**
-     * Получает количество неудачных анализов
+     * Получает количество неудачных запросов анализа.
+     * 
+     * @return количество неудачных запросов
      */
-    public long getFailedAnalysis() {
-        return failedAnalysis.get();
+    public long getFailedAnalysisRequests() {
+        return failedAnalysisRequests.get();
     }
     
     /**
-     * Получает количество выполнений для конкретного агента
+     * Получает среднее время выполнения анализа.
+     * 
+     * @return среднее время выполнения в миллисекундах
+     */
+    public long getAverageExecutionTime() {
+        return averageExecutionTime.get();
+    }
+    
+    /**
+     * Получает общее время выполнения всех анализов.
+     * 
+     * @return общее время выполнения в миллисекундах
+     */
+    public long getTotalExecutionTime() {
+        return totalExecutionTime.get();
+    }
+    
+    /**
+     * Получает количество выполненных анализов для указанного тикера.
+     * 
+     * @param ticker тикер криптовалюты
+     * @return количество анализов
+     */
+    public long getTickerAnalysisCount(String ticker) {
+        return tickerAnalysisCounts.getOrDefault(ticker, new AtomicLong(0)).get();
+    }
+    
+    /**
+     * Получает общее время выполнения анализов для указанного тикера.
+     * 
+     * @param ticker тикер криптовалюты
+     * @return общее время выполнения в миллисекундах
+     */
+    public long getTickerExecutionTime(String ticker) {
+        return tickerExecutionTimes.getOrDefault(ticker, new AtomicLong(0)).get();
+    }
+    
+    /**
+     * Получает количество ошибок для указанного тикера.
+     * 
+     * @param ticker тикер криптовалюты
+     * @return количество ошибок
+     */
+    public long getTickerErrorCount(String ticker) {
+        return tickerErrorCounts.getOrDefault(ticker, new AtomicLong(0)).get();
+    }
+    
+    /**
+     * Получает количество выполненных агентов указанного типа.
+     * 
+     * @param agentName имя агента
+     * @return количество выполнений
      */
     public long getAgentExecutionCount(String agentName) {
-        AtomicLong count = agentExecutionCounts.get(agentName);
-        return count != null ? count.get() : 0;
+        return agentExecutionCounts.getOrDefault(agentName, new AtomicLong(0)).get();
     }
     
     /**
-     * Получает время работы с момента последнего сброса в миллисекундах
+     * Получает общее время выполнения агента указанного типа.
+     * 
+     * @param agentName имя агента
+     * @return общее время выполнения в миллисекундах
      */
-    public long getUptimeMs() {
-        return System.currentTimeMillis() - lastResetTime;
+    public long getAgentExecutionTime(String agentName) {
+        return agentExecutionTimes.getOrDefault(agentName, new AtomicLong(0)).get();
     }
     
     /**
-     * Получает время последнего сброса
+     * Получает количество ошибок агента указанного типа.
+     * 
+     * @param agentName имя агента
+     * @return количество ошибок
      */
-    public long getLastResetTime() {
-        return lastResetTime;
+    public long getAgentErrorCount(String agentName) {
+        return agentErrorCounts.getOrDefault(agentName, new AtomicLong(0)).get();
     }
     
     /**
-     * Сбрасывает все метрики
+     * Получает процент успешных запросов.
+     * 
+     * @return процент успешных запросов (0.0 - 100.0)
      */
-    public void reset() {
-        totalAnalysisRequests.set(0);
-        successfulAnalysis.set(0);
-        failedAnalysis.set(0);
-        totalExecutionTime.set(0);
-        agentExecutionCounts.clear();
-        agentFailureCounts.clear();
-        agentExecutionTimes.clear();
-        lastResetTime = System.currentTimeMillis();
-        logger.info("Orchestrator metrics reset");
-    }
-    
-    /**
-     * Convert metrics to DTO for API response
-     */
-    public MetricsResponse toMetricsResponse() {
-        Map<String, MetricsResponse.AgentMetrics> agentMetricsMap = new HashMap<>();
-        
-        for (String agentName : getTrackedAgents()) {
-            MetricsResponse.AgentMetrics agentMetrics = MetricsResponse.AgentMetrics.builder()
-                    .executionCount(getAgentExecutionCount(agentName))
-                    .failureRate(getAgentFailureRate(agentName))
-                    .averageExecutionTime(getAgentAverageExecutionTime(agentName))
-                    .build();
-            agentMetricsMap.put(agentName, agentMetrics);
+    public double getSuccessRate() {
+        long total = totalAnalysisRequests.get();
+        if (total == 0) {
+            return 0.0;
         }
+        return (double) successfulAnalysisRequests.get() / total * 100.0;
+    }
+    
+    /**
+     * Получает полную статистику метрик.
+     * 
+     * @return карта со всеми метриками
+     */
+    public Map<String, Object> getAllMetrics() {
+        Map<String, Object> metrics = new ConcurrentHashMap<>();
         
-        return MetricsResponse.builder()
-                .totalRequests(getTotalAnalysisRequests())
-                .successfulAnalyses(getSuccessfulAnalysis())
-                .failedAnalyses(getFailedAnalysis())
-                .successRate(getSuccessRate())
-                .failureRate(getFailureRate())
-                .averageExecutionTime(getAverageExecutionTime())
-                .agentMetrics(agentMetricsMap)
-                .uptimeMs(getUptimeMs())
-                .lastResetTime(new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
-                        .format(new java.util.Date(getLastResetTime())))
-                .build();
+        // Общие метрики
+        metrics.put("totalAnalysisRequests", getTotalAnalysisRequests());
+        metrics.put("successfulAnalysisRequests", getSuccessfulAnalysisRequests());
+        metrics.put("failedAnalysisRequests", getFailedAnalysisRequests());
+        metrics.put("successRate", getSuccessRate());
+        metrics.put("averageExecutionTime", getAverageExecutionTime());
+        metrics.put("totalExecutionTime", getTotalExecutionTime());
+        
+        // Метрики по агентам
+        Map<String, Object> agentMetrics = new ConcurrentHashMap<>();
+        for (String agentName : agentExecutionCounts.keySet()) {
+            Map<String, Object> agentStats = new ConcurrentHashMap<>();
+            agentStats.put("executionCount", getAgentExecutionCount(agentName));
+            agentStats.put("executionTime", getAgentExecutionTime(agentName));
+            agentStats.put("errorCount", getAgentErrorCount(agentName));
+            agentMetrics.put(agentName, agentStats);
+        }
+        metrics.put("agentMetrics", agentMetrics);
+        
+        // Метрики по тикерам
+        Map<String, Object> tickerMetrics = new ConcurrentHashMap<>();
+        for (String ticker : tickerAnalysisCounts.keySet()) {
+            Map<String, Object> tickerStats = new ConcurrentHashMap<>();
+            tickerStats.put("analysisCount", getTickerAnalysisCount(ticker));
+            tickerStats.put("executionTime", getTickerExecutionTime(ticker));
+            tickerStats.put("errorCount", getTickerErrorCount(ticker));
+            tickerMetrics.put(ticker, tickerStats);
+        }
+        metrics.put("tickerMetrics", tickerMetrics);
+        
+        return metrics;
     }
 } 

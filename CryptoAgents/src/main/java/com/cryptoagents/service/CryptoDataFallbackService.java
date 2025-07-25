@@ -4,8 +4,6 @@ import com.cryptoagents.model.dto.CryptoCurrency;
 import com.cryptoagents.model.dto.HistoricalData;
 import com.cryptoagents.model.dto.MarketData;
 import com.cryptoagents.model.enums.TimePeriod;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -17,366 +15,348 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Fallback service providing default data when the primary CryptoDataService is unavailable.
+ * Сервис резервного копирования данных о криптовалютах.
  * 
- * This service implements various fallback strategies including cached data retrieval,
- * default values, and circuit breaker patterns to ensure system resilience.
+ * Этот сервис предоставляет fallback данные, когда основной API недоступен.
+ * Реализует паттерн Circuit Breaker для предотвращения каскадных сбоев.
  */
 @Slf4j
 @Service
 public class CryptoDataFallbackService {
-
-    // Circuit breaker configuration
+    
+    // Circuit Breaker константы
     private static final int FAILURE_THRESHOLD = 5;
-    private static final long RECOVERY_TIMEOUT_MS = 60000; // 1 minute
-    private static final long HALF_OPEN_MAX_CALLS = 3;
-
-    // Circuit breaker state
-    private volatile CircuitBreakerState circuitState = CircuitBreakerState.CLOSED;
+    private static final long RESET_TIMEOUT_MS = 60000; // 1 минута
+    private static final int HALF_OPEN_MAX_CALLS = 3;
+    
+    // Состояния Circuit Breaker
+    private enum CircuitState {
+        CLOSED,     // Нормальная работа
+        OPEN,       // Блокировка вызовов
+        HALF_OPEN   // Тестовые вызовы
+    }
+    
+    private volatile CircuitState circuitState = CircuitState.CLOSED;
     private final AtomicInteger failureCount = new AtomicInteger(0);
-    private final AtomicLong lastFailureTime = new AtomicLong(0);
-    private final AtomicLong halfOpenCalls = new AtomicLong(0);
-
-    // Emergency data storage
-    private final Map<String, BigDecimal> emergencyPrices = new ConcurrentHashMap<>();
-    private final Map<String, MarketData> emergencyMarketData = new ConcurrentHashMap<>();
-    private final Map<String, LocalDateTime> lastSuccessfulUpdate = new ConcurrentHashMap<>();
-
+    private final AtomicInteger successCount = new AtomicInteger(0);
+    private volatile long lastFailureTime = 0;
+    
+    // Кэш fallback данных
+    private final Map<String, BigDecimal> priceCache = new ConcurrentHashMap<>();
+    private final Map<String, MarketData> marketDataCache = new ConcurrentHashMap<>();
+    private final Map<String, CryptoCurrency> cryptoInfoCache = new ConcurrentHashMap<>();
+    
+    // Статистика
+    private final AtomicLong totalFallbackCalls = new AtomicLong(0);
+    private final AtomicLong successfulFallbackCalls = new AtomicLong(0);
+    
     /**
-     * Circuit breaker states for managing API call failures.
-     */
-    public enum CircuitBreakerState {
-        CLOSED,    // Normal operation
-        OPEN,      // API calls blocked
-        HALF_OPEN  // Testing recovery
-    }
-
-    /**
-     * Records a successful API call, potentially closing the circuit breaker.
-     */
-    public void recordSuccess() {
-        failureCount.set(0);
-        if (circuitState == CircuitBreakerState.HALF_OPEN) {
-            circuitState = CircuitBreakerState.CLOSED;
-            halfOpenCalls.set(0);
-            log.info("Circuit breaker CLOSED - API service recovered");
-        }
-    }
-
-    /**
-     * Records a failed API call, potentially opening the circuit breaker.
-     */
-    public void recordFailure() {
-        lastFailureTime.set(System.currentTimeMillis());
-        int failures = failureCount.incrementAndGet();
-        
-        if (failures >= FAILURE_THRESHOLD && circuitState == CircuitBreakerState.CLOSED) {
-            circuitState = CircuitBreakerState.OPEN;
-            log.error("Circuit breaker OPENED - API service appears to be down (failures: {})", failures);
-        }
-    }
-
-    /**
-     * Checks if API calls should be allowed based on circuit breaker state.
+     * Проверяет, разрешены ли вызовы API в текущем состоянии Circuit Breaker.
      * 
-     * @return true if API calls are allowed, false otherwise
+     * @return true, если вызовы API разрешены, false в противном случае
      */
     public boolean isCallAllowed() {
         switch (circuitState) {
             case CLOSED:
                 return true;
-                
             case OPEN:
-                // Check if recovery timeout has passed
-                if (System.currentTimeMillis() - lastFailureTime.get() > RECOVERY_TIMEOUT_MS) {
-                    circuitState = CircuitBreakerState.HALF_OPEN;
-                    halfOpenCalls.set(0);
-                    log.info("Circuit breaker HALF_OPEN - testing service recovery");
+                // Проверяем, прошло ли достаточно времени для перехода в HALF_OPEN
+                if (System.currentTimeMillis() - lastFailureTime > RESET_TIMEOUT_MS) {
+                    circuitState = CircuitState.HALF_OPEN;
+                    log.info("Circuit Breaker переходит в состояние HALF_OPEN");
                     return true;
                 }
                 return false;
-                
             case HALF_OPEN:
-                // Allow limited calls to test recovery
-                long calls = halfOpenCalls.incrementAndGet();
-                if (calls <= HALF_OPEN_MAX_CALLS) {
-                    return true;
-                } else {
-                    // Too many calls in half-open state, back to open
-                    circuitState = CircuitBreakerState.OPEN;
-                    lastFailureTime.set(System.currentTimeMillis());
-                    log.warn("Circuit breaker back to OPEN - recovery test failed");
-                    return false;
-                }
-                
+                return successCount.get() < HALF_OPEN_MAX_CALLS;
             default:
                 return false;
         }
     }
-
+    
     /**
-     * Gets the current circuit breaker state.
+     * Получает текущее состояние Circuit Breaker.
      * 
-     * @return Current circuit breaker state
+     * @return Текущее состояние Circuit Breaker
      */
-    public CircuitBreakerState getCircuitState() {
+    public CircuitState getCircuitState() {
         return circuitState;
     }
-
+    
     /**
-     * Provides fallback price data when the main service is unavailable.
+     * Получает резервную цену криптовалюты.
      * 
-     * @param ticker The cryptocurrency ticker
-     * @return Fallback price data if available
+     * @param ticker Тикер криптовалюты
+     * @return Резервные данные о цене, если доступны
      */
     public Optional<BigDecimal> getFallbackPrice(String ticker) {
-        if (ticker == null || ticker.trim().isEmpty()) {
+        totalFallbackCalls.incrementAndGet();
+        
+        try {
+            String normalizedTicker = ticker.toUpperCase();
+            BigDecimal price = priceCache.get(normalizedTicker);
+            
+            if (price != null) {
+                successfulFallbackCalls.incrementAndGet();
+                log.debug("Fallback цена для {}: {}", ticker, price);
+                return Optional.of(price);
+            }
+            
+            // Попытка получить цену по умолчанию
+            Optional<BigDecimal> defaultPrice = getDefaultPrice(normalizedTicker);
+            if (defaultPrice.isPresent()) {
+                successfulFallbackCalls.incrementAndGet();
+                log.debug("Использована цена по умолчанию для {}: {}", ticker, defaultPrice.get());
+            }
+            
+            return defaultPrice;
+            
+        } catch (Exception e) {
+            log.warn("Ошибка при получении fallback цены для {}: {}", ticker, e.getMessage());
             return Optional.empty();
         }
-
-        String normalizedTicker = ticker.toLowerCase();
-        
-        // Try emergency cached price first
-        BigDecimal emergencyPrice = emergencyPrices.get(normalizedTicker);
-        if (emergencyPrice != null) {
-            log.debug("Returning emergency cached price for {}: ${}", ticker, emergencyPrice);
-            return Optional.of(emergencyPrice);
-        }
-
-        // Return default prices for major cryptocurrencies (very rough estimates)
-        BigDecimal defaultPrice = getDefaultPrice(normalizedTicker);
-        if (defaultPrice != null) {
-            log.warn("Returning default fallback price for {}: ${}", ticker, defaultPrice);
-            return Optional.of(defaultPrice);
-        }
-
-        log.warn("No fallback price available for ticker: {}", ticker);
-        return Optional.empty();
     }
-
+    
     /**
-     * Provides fallback market data when the main service is unavailable.
+     * Получает резервные рыночные данные криптовалюты.
      * 
-     * @param ticker The cryptocurrency ticker
-     * @return Fallback market data if available
+     * @param ticker Тикер криптовалюты
+     * @return Резервные рыночные данные, если доступны
      */
     public Optional<MarketData> getFallbackMarketData(String ticker) {
-        if (ticker == null || ticker.trim().isEmpty()) {
-            return Optional.empty();
-        }
-
-        String normalizedTicker = ticker.toLowerCase();
+        totalFallbackCalls.incrementAndGet();
         
-        // Try emergency cached market data
-        MarketData emergencyData = emergencyMarketData.get(normalizedTicker);
-        if (emergencyData != null) {
-            log.debug("Returning emergency cached market data for {}", ticker);
-            return Optional.of(emergencyData);
-        }
-
-        // Create minimal fallback market data
-        Optional<BigDecimal> fallbackPrice = getFallbackPrice(ticker);
-        if (fallbackPrice.isPresent()) {
-            MarketData fallbackData = new MarketData(ticker.toUpperCase(), 
-                getCryptoName(normalizedTicker), fallbackPrice.get());
-            
-            log.warn("Returning minimal fallback market data for {}", ticker);
-            return Optional.of(fallbackData);
-        }
-
-        log.warn("No fallback market data available for ticker: {}", ticker);
-        return Optional.empty();
-    }
-
-    /**
-     * Provides fallback historical data with minimal mock data.
-     * 
-     * @param ticker The cryptocurrency ticker
-     * @param period The time period
-     * @return Fallback historical data with basic validation data
-     */
-    public Optional<HistoricalData> getFallbackHistoricalData(String ticker, TimePeriod period) {
-        if (ticker == null || ticker.trim().isEmpty()) {
-            return Optional.empty();
-        }
-        
-        log.warn("Historical data not available in fallback mode for {} ({})", ticker, period);
-        
-        // Create minimal historical data for basic functionality
-        HistoricalData fallbackData = new HistoricalData(ticker.toUpperCase(), period);
-        
-        // Add at least one price point to make hasValidData() return true
-        Optional<BigDecimal> fallbackPrice = getFallbackPrice(ticker);
-        if (fallbackPrice.isPresent()) {
-            HistoricalData.PricePoint pricePoint = new HistoricalData.PricePoint(
-                LocalDateTime.now(), 
-                fallbackPrice.get()
-            );
-            fallbackData.addPricePoint(pricePoint);
-        }
-        
-        return Optional.of(fallbackData);
-    }
-
-    /**
-     * Provides fallback crypto info when the main service is unavailable.
-     * 
-     * @param ticker The cryptocurrency ticker
-     * @return Fallback crypto info if available
-     */
-    public Optional<CryptoCurrency> getFallbackCryptoInfo(String ticker) {
-        if (ticker == null || ticker.trim().isEmpty()) {
-            return Optional.empty();
-        }
-
-        String normalizedTicker = ticker.toLowerCase();
-        
-        Optional<BigDecimal> fallbackPrice = getFallbackPrice(ticker);
-        if (fallbackPrice.isPresent()) {
-            CryptoCurrency fallbackCrypto = new CryptoCurrency(
-                normalizedTicker, 
-                ticker.toUpperCase(), 
-                getCryptoName(normalizedTicker), 
-                fallbackPrice.get()
-            );
-            
-            log.warn("Returning minimal fallback crypto info for {}", ticker);
-            return Optional.of(fallbackCrypto);
-        }
-
-        log.warn("No fallback crypto info available for ticker: {}", ticker);
-        return Optional.empty();
-    }
-
-    /**
-     * Returns a minimal list of supported cryptocurrencies in fallback mode.
-     * 
-     * @return List of major cryptocurrencies
-     */
-    public List<CryptoCurrency> getFallbackSupportedCryptocurrencies() {
-        List<CryptoCurrency> fallbackList = new ArrayList<>();
-        
-        String[] majorCryptos = {"btc", "eth", "bnb", "ada", "dot", "sol", "matic", "avax", "link", "uni", "ltc", "xrp"};
-        
-        for (String ticker : majorCryptos) {
-            Optional<BigDecimal> price = getFallbackPrice(ticker);
-            if (price.isPresent()) {
-                fallbackList.add(new CryptoCurrency(
-                    ticker, 
-                    ticker.toUpperCase(), 
-                    getCryptoName(ticker), 
-                    price.get()
-                ));
-            }
-        }
-        
-        log.warn("Returning fallback supported cryptocurrencies list with {} entries", fallbackList.size());
-        return fallbackList;
-    }
-
-    /**
-     * Stores emergency backup data for fallback use.
-     * 
-     * @param ticker The cryptocurrency ticker
-     * @param price The current price to store
-     * @param marketData The market data to store (optional)
-     */
-    public void storeEmergencyData(String ticker, BigDecimal price, MarketData marketData) {
-        if (ticker != null && price != null) {
-            String normalizedTicker = ticker.toLowerCase();
-            emergencyPrices.put(normalizedTicker, price);
-            lastSuccessfulUpdate.put(normalizedTicker, LocalDateTime.now());
+        try {
+            String normalizedTicker = ticker.toUpperCase();
+            MarketData marketData = marketDataCache.get(normalizedTicker);
             
             if (marketData != null) {
-                emergencyMarketData.put(normalizedTicker, marketData);
+                successfulFallbackCalls.incrementAndGet();
+                log.debug("Fallback рыночные данные для {}: {}", ticker, marketData);
+                return Optional.of(marketData);
             }
             
-            log.debug("Stored emergency data for {}: ${}", ticker, price);
+            // Создание базовых рыночных данных с fallback ценой
+            Optional<BigDecimal> price = getFallbackPrice(ticker);
+            if (price.isPresent()) {
+                MarketData fallbackData = MarketData.builder()
+                        .price(price.get())
+                        .volume24h(BigDecimal.ZERO)
+                        .marketCap(BigDecimal.ZERO)
+                        .priceChange24h(BigDecimal.ZERO)
+                        .priceChangePercentage24h(BigDecimal.ZERO)
+                        .lastUpdated(LocalDateTime.now())
+                        .build();
+                
+                successfulFallbackCalls.incrementAndGet();
+                log.debug("Созданы базовые рыночные данные для {}: {}", ticker, fallbackData);
+                return Optional.of(fallbackData);
+            }
+            
+            return Optional.empty();
+            
+        } catch (Exception e) {
+            log.warn("Ошибка при получении fallback рыночных данных для {}: {}", ticker, e.getMessage());
+            return Optional.empty();
         }
     }
-
+    
     /**
-     * Gets default hardcoded prices for major cryptocurrencies (rough estimates).
-     * These should be periodically updated but serve as last resort fallbacks.
+     * Получает резервные исторические данные криптовалюты.
      * 
-     * @param normalizedTicker The lowercase ticker symbol
-     * @return Default price if available
+     * @param ticker Тикер криптовалюты
+     * @param period Временной период
+     * @return Резервные исторические данные с базовыми данными валидации
      */
-    private BigDecimal getDefaultPrice(String normalizedTicker) {
-        Map<String, BigDecimal> defaultPrices = new HashMap<>();
-        defaultPrices.put("btc", new BigDecimal("45000"));
-        defaultPrices.put("eth", new BigDecimal("3000"));
-        defaultPrices.put("bnb", new BigDecimal("400"));
-        defaultPrices.put("ada", new BigDecimal("0.50"));
-        defaultPrices.put("dot", new BigDecimal("8.00"));
-        defaultPrices.put("sol", new BigDecimal("100"));
-        defaultPrices.put("matic", new BigDecimal("1.00"));
-        defaultPrices.put("avax", new BigDecimal("25.00"));
-        defaultPrices.put("link", new BigDecimal("15.00"));
-        defaultPrices.put("uni", new BigDecimal("7.00"));
-        defaultPrices.put("ltc", new BigDecimal("150.00"));
-        defaultPrices.put("xrp", new BigDecimal("0.60"));
+    public Optional<HistoricalData> getFallbackHistoricalData(String ticker, TimePeriod period) {
+        totalFallbackCalls.incrementAndGet();
         
-        // For unknown tickers, return a default price
-        return defaultPrices.getOrDefault(normalizedTicker, new BigDecimal("1.00"));
+        try {
+            // Создание базовых исторических данных с текущей ценой
+            Optional<BigDecimal> currentPrice = getFallbackPrice(ticker);
+            if (currentPrice.isPresent()) {
+                List<HistoricalData.PricePoint> pricePoints = Arrays.asList(
+                        new HistoricalData.PricePoint(LocalDateTime.now(), currentPrice.get())
+                );
+                
+                HistoricalData fallbackData = HistoricalData.builder()
+                        .ticker(ticker.toUpperCase())
+                        .period(period)
+                        .pricePoints(pricePoints)
+                        .dataPoints(1)
+                        .build();
+                
+                successfulFallbackCalls.incrementAndGet();
+                log.debug("Созданы базовые исторические данные для {}: {}", ticker, fallbackData);
+                return Optional.of(fallbackData);
+            }
+            
+            return Optional.empty();
+            
+        } catch (Exception e) {
+            log.warn("Ошибка при получении fallback исторических данных для {}: {}", ticker, e.getMessage());
+            return Optional.empty();
+        }
     }
-
+    
     /**
-     * Gets the full name for a cryptocurrency ticker.
+     * Получает резервную информацию о криптовалюте.
      * 
-     * @param normalizedTicker The lowercase ticker symbol
-     * @return The full cryptocurrency name
+     * @param ticker Тикер криптовалюты
+     * @return Резервная информация о криптовалюте, если доступна
      */
-    private String getCryptoName(String normalizedTicker) {
-        Map<String, String> cryptoNames = new HashMap<>();
-        cryptoNames.put("btc", "Bitcoin");
-        cryptoNames.put("eth", "Ethereum");
-        cryptoNames.put("bnb", "BNB");
-        cryptoNames.put("ada", "Cardano");
-        cryptoNames.put("dot", "Polkadot");
-        cryptoNames.put("sol", "Solana");
-        cryptoNames.put("matic", "Polygon");
-        cryptoNames.put("avax", "Avalanche");
-        cryptoNames.put("link", "Chainlink");
-        cryptoNames.put("uni", "Uniswap");
-        cryptoNames.put("ltc", "Litecoin");
-        cryptoNames.put("xrp", "XRP");
+    public Optional<CryptoCurrency> getFallbackCryptoInfo(String ticker) {
+        totalFallbackCalls.incrementAndGet();
         
-        return cryptoNames.getOrDefault(normalizedTicker, 
-            normalizedTicker.toUpperCase() + " Token");
+        try {
+            String normalizedTicker = ticker.toUpperCase();
+            CryptoCurrency cryptoInfo = cryptoInfoCache.get(normalizedTicker);
+            
+            if (cryptoInfo != null) {
+                successfulFallbackCalls.incrementAndGet();
+                log.debug("Fallback информация о криптовалюте для {}: {}", ticker, cryptoInfo);
+                return Optional.of(cryptoInfo);
+            }
+            
+            // Создание базовой информации о криптовалюте
+            String fullName = getDefaultCryptoName(normalizedTicker);
+            CryptoCurrency fallbackInfo = CryptoCurrency.builder()
+                    .id(normalizedTicker.toLowerCase())
+                    .symbol(normalizedTicker)
+                    .name(fullName)
+                    .build();
+            
+            successfulFallbackCalls.incrementAndGet();
+            log.debug("Создана базовая информация о криптовалюте для {}: {}", ticker, fallbackInfo);
+            return Optional.of(fallbackInfo);
+            
+        } catch (Exception e) {
+            log.warn("Ошибка при получении fallback информации о криптовалюте для {}: {}", ticker, e.getMessage());
+            return Optional.empty();
+        }
     }
-
+    
     /**
-     * Gets statistics about the fallback service and circuit breaker.
+     * Получает список основных криптовалют.
      * 
-     * @return Fallback service statistics
+     * @return Список основных криптовалют
      */
-    public FallbackStats getStats() {
-        return new FallbackStats(
-            circuitState,
-            failureCount.get(),
-            emergencyPrices.size(),
-            emergencyMarketData.size(),
-            lastFailureTime.get()
+    public List<CryptoCurrency> getFallbackSupportedCryptocurrencies() {
+        totalFallbackCalls.incrementAndGet();
+        
+        try {
+            List<CryptoCurrency> fallbackCryptos = Arrays.asList(
+                    CryptoCurrency.builder().id("bitcoin").symbol("BTC").name("Bitcoin").build(),
+                    CryptoCurrency.builder().id("ethereum").symbol("ETH").name("Ethereum").build(),
+                    CryptoCurrency.builder().id("binancecoin").symbol("BNB").name("BNB").build(),
+                    CryptoCurrency.builder().id("cardano").symbol("ADA").name("Cardano").build(),
+                    CryptoCurrency.builder().id("solana").symbol("SOL").name("Solana").build(),
+                    CryptoCurrency.builder().id("ripple").symbol("XRP").name("XRP").build(),
+                    CryptoCurrency.builder().id("polkadot").symbol("DOT").name("Polkadot").build(),
+                    CryptoCurrency.builder().id("dogecoin").symbol("DOGE").name("Dogecoin").build(),
+                    CryptoCurrency.builder().id("avalanche-2").symbol("AVAX").name("Avalanche").build(),
+                    CryptoCurrency.builder().id("polygon").symbol("MATIC").name("Polygon").build()
+            );
+            
+            successfulFallbackCalls.incrementAndGet();
+            log.debug("Возвращен список fallback криптовалют: {}", fallbackCryptos.size());
+            return fallbackCryptos;
+            
+        } catch (Exception e) {
+            log.warn("Ошибка при получении fallback списка криптовалют: {}", e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+    
+    /**
+     * Сохраняет данные в кэш для использования в качестве fallback.
+     * 
+     * @param ticker Тикер криптовалюты
+     * @param price Текущая цена для сохранения
+     * @param marketData Рыночные данные для сохранения (опционально)
+     */
+    public void cacheData(String ticker, BigDecimal price, MarketData marketData) {
+        try {
+            String normalizedTicker = ticker.toUpperCase();
+            
+            if (price != null) {
+                priceCache.put(normalizedTicker, price);
+                log.debug("Сохранена цена в кэш для {}: {}", ticker, price);
+            }
+            
+            if (marketData != null) {
+                marketDataCache.put(normalizedTicker, marketData);
+                log.debug("Сохранены рыночные данные в кэш для {}: {}", ticker, marketData);
+            }
+            
+        } catch (Exception e) {
+            log.warn("Ошибка при сохранении данных в кэш для {}: {}", ticker, e.getMessage());
+        }
+    }
+    
+    /**
+     * Получает цену по умолчанию для тикера.
+     * 
+     * @param normalizedTicker Нормализованный символ тикера
+     * @return Цена по умолчанию, если доступна
+     */
+    private Optional<BigDecimal> getDefaultPrice(String normalizedTicker) {
+        // Базовые цены по умолчанию для основных криптовалют
+        Map<String, BigDecimal> defaultPrices = Map.of(
+                "BTC", new BigDecimal("45000.00"),
+                "ETH", new BigDecimal("3000.00"),
+                "BNB", new BigDecimal("300.00"),
+                "ADA", new BigDecimal("0.50"),
+                "SOL", new BigDecimal("100.00"),
+                "XRP", new BigDecimal("0.60"),
+                "DOT", new BigDecimal("7.00"),
+                "DOGE", new BigDecimal("0.08"),
+                "AVAX", new BigDecimal("25.00"),
+                "MATIC", new BigDecimal("0.80")
         );
+        
+        return Optional.ofNullable(defaultPrices.get(normalizedTicker));
     }
-
+    
     /**
-     * Statistics holder for fallback service monitoring.
+     * Получает полное имя криптовалюты по умолчанию.
+     * 
+     * @param normalizedTicker Нормализованный символ тикера
+     * @return Полное имя криптовалюты
      */
-    @AllArgsConstructor
-    @Getter
-    public static class FallbackStats {
-        private final CircuitBreakerState circuitState;
-        private final int failureCount;
-        private final int emergencyPricesCount;
-        private final int emergencyMarketDataCount;
-        private final long lastFailureTime;
-
-        @Override
-        public String toString() {
-            return String.format("FallbackStats{circuit=%s, failures=%d, emergencyPrices=%d, emergencyMarketData=%d}", 
-                    circuitState, failureCount, emergencyPricesCount, emergencyMarketDataCount);
-        }
+    private String getDefaultCryptoName(String normalizedTicker) {
+        Map<String, String> defaultNames = Map.of(
+                "BTC", "Bitcoin",
+                "ETH", "Ethereum",
+                "BNB", "BNB",
+                "ADA", "Cardano",
+                "SOL", "Solana",
+                "XRP", "XRP",
+                "DOT", "Polkadot",
+                "DOGE", "Dogecoin",
+                "AVAX", "Avalanche",
+                "MATIC", "Polygon"
+        );
+        
+        return defaultNames.getOrDefault(normalizedTicker, normalizedTicker);
+    }
+    
+    /**
+     * Получает статистику fallback сервиса.
+     * 
+     * @return Статистика fallback сервиса
+     */
+    public Map<String, Object> getFallbackStatistics() {
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalFallbackCalls", totalFallbackCalls.get());
+        stats.put("successfulFallbackCalls", successfulFallbackCalls.get());
+        stats.put("circuitState", circuitState.name());
+        stats.put("failureCount", failureCount.get());
+        stats.put("successCount", successCount.get());
+        stats.put("cachedPrices", priceCache.size());
+        stats.put("cachedMarketData", marketDataCache.size());
+        stats.put("cachedCryptoInfo", cryptoInfoCache.size());
+        
+        return stats;
     }
 } 

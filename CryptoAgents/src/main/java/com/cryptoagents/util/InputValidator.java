@@ -1,94 +1,79 @@
 package com.cryptoagents.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
-import java.util.regex.Pattern;
+import org.springframework.util.StringUtils;
 
 /**
- * Утилитарный класс для валидации и санитизации входных данных
+ * Утилитарный класс для валидации входных данных.
+ * 
+ * Этот класс предоставляет методы для проверки корректности входных параметров,
+ * таких как тикеры криптовалют, временные периоды и другие данные.
  */
-@Component
 public class InputValidator {
     
-    private static final Logger logger = LoggerFactory.getLogger(InputValidator.class);
-    
-    // Паттерн для валидных тикеров (буквенно-цифровые, 1-10 символов)
-    private static final Pattern TICKER_PATTERN = Pattern.compile("^[A-Za-z0-9]{1,10}$");
-    
-    // Паттерн для валидных временных интервалов
-    private static final Pattern TIMEFRAME_PATTERN = Pattern.compile("^(1h|4h|24h|7d|30d)$");
-    
-    private final InputSanitizer inputSanitizer;
-    
-    public InputValidator(InputSanitizer inputSanitizer) {
-        this.inputSanitizer = inputSanitizer;
+    /**
+     * Проверяет, является ли тикер криптовалюты валидным.
+     * 
+     * @param ticker тикер для проверки
+     * @return true, если тикер валиден, false в противном случае
+     */
+    public static boolean isValidTicker(String ticker) {
+        if (!StringUtils.hasText(ticker)) {
+            return false;
+        }
+        
+        // Проверяем, что тикер содержит только буквы и цифры, длиной от 1 до 10 символов
+        return ticker.matches("^[A-Za-z0-9]{1,10}$");
     }
     
     /**
-     * Валидация и санитизация тикера
+     * Проверяет, является ли временной период валидным.
+     * 
+     * @param period период для проверки
+     * @return true, если период валиден, false в противном случае
      */
-    public String validateTicker(String ticker) {
-        try {
-            return inputSanitizer.sanitizeTicker(ticker);
-        } catch (IllegalArgumentException e) {
-            logger.warn("Неверный формат тикера: {}", ticker);
-            throw e;
+    public static boolean isValidTimePeriod(String period) {
+        if (!StringUtils.hasText(period)) {
+            return false;
         }
+        
+        // Проверяем, что период соответствует ожидаемому формату
+        return period.matches("^(1d|7d|30d|1y|max)$");
     }
     
     /**
-     * Валидация параметра временного интервала
+     * Проверяет, является ли цена валидной.
+     * 
+     * @param price цена для проверки
+     * @return true, если цена валидна, false в противном случае
      */
-    public String validateTimeframe(String timeframe) {
-        if (timeframe == null || timeframe.trim().isEmpty()) {
-            return "24h"; // Временной интервал по умолчанию
-        }
-        
-        String sanitizedTimeframe = timeframe.trim().toLowerCase();
-        
-        if (!TIMEFRAME_PATTERN.matcher(sanitizedTimeframe).matches()) {
-            logger.warn("Неверный временной интервал: {}, используется по умолчанию", timeframe);
-            return "24h"; // По умолчанию 24h если неверный
-        }
-        
-        logger.debug("Временной интервал валидирован: {} -> {}", timeframe, sanitizedTimeframe);
-        return sanitizedTimeframe;
-    }
-    
-    /**
-     * Санитизация строкового ввода для предотвращения атак внедрения
-     */
-    public String sanitizeString(String input) {
-        if (input == null) {
-            return null;
-        }
-        
-        String sanitized = inputSanitizer.removeDangerousChars(input);
-        
-        // Ограничение длины
-        if (sanitized.length() > 1000) {
-            sanitized = sanitized.substring(0, 1000);
-            logger.warn("Ввод обрезан до 1000 символов");
-        }
-        
-        return sanitized.trim();
-    }
-    
-    /**
-     * Валидация числового ввода
-     */
-    public boolean isValidNumber(String input) {
-        if (input == null || input.trim().isEmpty()) {
+    public static boolean isValidPrice(String price) {
+        if (!StringUtils.hasText(price)) {
             return false;
         }
         
         try {
-            Double.parseDouble(input.trim());
-            return true;
+            double priceValue = Double.parseDouble(price);
+            return priceValue > 0;
         } catch (NumberFormatException e) {
-            logger.warn("Неверный формат числа: {}", input);
+            return false;
+        }
+    }
+    
+    /**
+     * Проверяет, является ли объем валидным.
+     * 
+     * @param volume объем для проверки
+     * @return true, если объем валиден, false в противном случае
+     */
+    public static boolean isValidVolume(String volume) {
+        if (!StringUtils.hasText(volume)) {
+            return false;
+        }
+        
+        try {
+            double volumeValue = Double.parseDouble(volume);
+            return volumeValue >= 0;
+        } catch (NumberFormatException e) {
             return false;
         }
     }

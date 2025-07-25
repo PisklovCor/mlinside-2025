@@ -5,113 +5,113 @@ import org.springframework.stereotype.Component;
 import java.util.regex.Pattern;
 
 /**
- * Утилита для санитизации и валидации входных данных
+ * Утилитарный класс для очистки и санитизации входных данных.
+ * 
+ * Этот класс предоставляет методы для удаления потенциально опасных символов
+ * и нормализации входных данных для предотвращения атак.
  */
 @Component
 public class InputSanitizer {
     
-    // Паттерн для валидных тикеров криптовалют
-    private static final Pattern TICKER_PATTERN = Pattern.compile("^[A-Z0-9]{1,10}$");
+    // Паттерн для удаления потенциально опасных символов
+    private static final Pattern DANGEROUS_CHARS_PATTERN = Pattern.compile("[<>\"'&;(){}[\\]]");
     
-    // Паттерн для валидных буквенно-цифровых строк
-    private static final Pattern ALPHANUMERIC_PATTERN = Pattern.compile("^[a-zA-Z0-9\\s-_]+$");
-    
-    // Паттерн для валидных email адресов
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    // Паттерн для валидных тикеров (только буквы и цифры)
+    private static final Pattern TICKER_PATTERN = Pattern.compile("^[A-Za-z0-9]+$");
     
     /**
-     * Санитизация и валидация тикера криптовалюты
-     */
-    public String sanitizeTicker(String ticker) {
-        if (ticker == null || ticker.trim().isEmpty()) {
-            throw new IllegalArgumentException("Тикер не может быть null или пустым");
-        }
-        
-        String sanitized = ticker.trim().toUpperCase();
-        
-        if (!TICKER_PATTERN.matcher(sanitized).matches()) {
-            throw new IllegalArgumentException("Неверный формат тикера. Должен содержать 1-10 заглавных букв/цифр");
-        }
-        
-        return sanitized;
-    }
-    
-    /**
-     * Санитизация буквенно-цифрового ввода
-     */
-    public String sanitizeAlphanumeric(String input, int maxLength) {
-        if (input == null) {
-            return null;
-        }
-        
-        String sanitized = input.trim();
-        
-        if (sanitized.length() > maxLength) {
-            sanitized = sanitized.substring(0, maxLength);
-        }
-        
-        if (!ALPHANUMERIC_PATTERN.matcher(sanitized).matches()) {
-            throw new IllegalArgumentException("Ввод содержит неверные символы");
-        }
-        
-        return sanitized;
-    }
-    
-    /**
-     * Санитизация email адреса
-     */
-    public String sanitizeEmail(String email) {
-        if (email == null || email.trim().isEmpty()) {
-            throw new IllegalArgumentException("Email не может быть null или пустым");
-        }
-        
-        String sanitized = email.trim().toLowerCase();
-        
-        if (!EMAIL_PATTERN.matcher(sanitized).matches()) {
-            throw new IllegalArgumentException("Неверный формат email");
-        }
-        
-        return sanitized;
-    }
-    
-    /**
-     * Удаление потенциально опасных символов
+     * Удаляет потенциально опасные символы из строки.
+     * 
+     * @param input входная строка
+     * @return очищенная строка
      */
     public String removeDangerousChars(String input) {
         if (input == null) {
             return null;
         }
         
-        return input.replaceAll("[<>\"'&]", "");
+        return DANGEROUS_CHARS_PATTERN.matcher(input).replaceAll("");
     }
     
     /**
-     * Валидация и санитизация числового ввода
+     * Очищает и валидирует тикер криптовалюты.
+     * 
+     * @param ticker тикер для очистки
+     * @return очищенный тикер
+     * @throws IllegalArgumentException если тикер невалиден
      */
-    public Long sanitizeLong(String input) {
+    public String sanitizeTicker(String ticker) {
+        if (ticker == null || ticker.trim().isEmpty()) {
+            throw new IllegalArgumentException("Тикер не может быть пустым");
+        }
+        
+        String sanitized = ticker.trim().toUpperCase();
+        
+        if (!TICKER_PATTERN.matcher(sanitized).matches()) {
+            throw new IllegalArgumentException("Тикер содержит недопустимые символы: " + ticker);
+        }
+        
+        if (sanitized.length() > 10) {
+            throw new IllegalArgumentException("Тикер слишком длинный: " + ticker);
+        }
+        
+        return sanitized;
+    }
+    
+    /**
+     * Очищает строку от лишних пробелов и ограничивает длину.
+     * 
+     * @param input входная строка
+     * @param maxLength максимальная длина
+     * @return очищенная строка
+     */
+    public String sanitizeString(String input, int maxLength) {
+        if (input == null) {
+            return null;
+        }
+        
+        String sanitized = removeDangerousChars(input).trim();
+        
+        if (sanitized.length() > maxLength) {
+            sanitized = sanitized.substring(0, maxLength);
+        }
+        
+        return sanitized;
+    }
+    
+    /**
+     * Очищает числовую строку.
+     * 
+     * @param input числовая строка
+     * @return очищенная числовая строка
+     */
+    public String sanitizeNumber(String input) {
         if (input == null || input.trim().isEmpty()) {
             return null;
         }
         
-        try {
-            return Long.parseLong(input.trim());
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Неверное числовое значение");
-        }
+        // Удаляем все символы кроме цифр, точки и минуса
+        return input.replaceAll("[^0-9.-]", "");
     }
     
     /**
-     * Валидация и санитизация double ввода
+     * Очищает email адрес.
+     * 
+     * @param email email для очистки
+     * @return очищенный email
      */
-    public Double sanitizeDouble(String input) {
-        if (input == null || input.trim().isEmpty()) {
+    public String sanitizeEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
             return null;
         }
         
-        try {
-            return Double.parseDouble(input.trim());
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Неверное числовое значение");
+        String sanitized = email.trim().toLowerCase();
+        
+        // Простая проверка формата email
+        if (!sanitized.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
+            throw new IllegalArgumentException("Неверный формат email: " + email);
         }
+        
+        return sanitized;
     }
 } 
