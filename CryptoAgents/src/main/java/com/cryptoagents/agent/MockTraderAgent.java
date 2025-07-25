@@ -2,6 +2,8 @@ package com.cryptoagents.agent;
 
 import com.cryptoagents.model.AnalysisResult;
 import com.cryptoagents.model.AnalystReport;
+import com.cryptoagents.model.enums.MarketTrend;
+import com.cryptoagents.model.enums.SignalStrength;
 import com.cryptoagents.model.RiskManagerReport;
 import com.cryptoagents.model.TraderReport;
 import org.springframework.stereotype.Component;
@@ -106,7 +108,7 @@ public class MockTraderAgent extends AbstractAgent {
     private void makeTradingDecision(AnalystReport analystReport, RiskManagerReport riskReport, 
                                    AnalysisContext context, TraderReport report) {
         
-        AnalystReport.MarketTrend trend = analystReport.getMarketTrend();
+        MarketTrend trend = analystReport.getMarketTrend();
         RiskManagerReport.RiskLevel riskLevel = riskReport.getRiskLevel();
         double maxPosition = riskReport.getRecommendedPositionSize().doubleValue();
         double currentPrice = context.getMarketData().getCurrentPrice().doubleValue();
@@ -116,7 +118,7 @@ public class MockTraderAgent extends AbstractAgent {
         String reasoning;
         
         // Trading decision logic based on trend and risk
-        if (trend == AnalystReport.MarketTrend.BULLISH) {
+        if (trend == MarketTrend.BULLISH) {
             if (riskLevel == RiskManagerReport.RiskLevel.LOW) {
                 tradingAction = TraderReport.TradingAction.BUY;
                 positionSize = maxPosition;
@@ -130,7 +132,7 @@ public class MockTraderAgent extends AbstractAgent {
                 positionSize = 0.0;
                 reasoning = "Bullish signal rejected due to high risk level";
             }
-        } else if (trend == AnalystReport.MarketTrend.BEARISH) {
+        } else if (trend == MarketTrend.BEARISH) {
             tradingAction = TraderReport.TradingAction.SELL;
             positionSize = 1.0; // Sell full position
             reasoning = "Bearish signal confirmed by risk assessment";

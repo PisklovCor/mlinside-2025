@@ -1,6 +1,8 @@
 package com.cryptoagents.repository;
 
 import com.cryptoagents.model.AnalystReport;
+import com.cryptoagents.model.enums.MarketTrend;
+import com.cryptoagents.model.enums.SignalStrength;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -35,7 +37,7 @@ public interface AnalystReportRepository extends JpaRepository<AnalystReport, Lo
      * @param marketTrend the market trend to filter by
      * @return list of analyst reports with the specified market trend
      */
-    List<AnalystReport> findByMarketTrend(AnalystReport.MarketTrend marketTrend);
+    List<AnalystReport> findByMarketTrend(MarketTrend marketTrend);
     
     /**
      * Find analyst reports by ticker and market trend.
@@ -44,7 +46,7 @@ public interface AnalystReportRepository extends JpaRepository<AnalystReport, Lo
      * @param marketTrend the market trend to filter by
      * @return list of analyst reports for the ticker with specified trend
      */
-    List<AnalystReport> findByTickerAndMarketTrend(String ticker, AnalystReport.MarketTrend marketTrend);
+    List<AnalystReport> findByTickerAndMarketTrend(String ticker, MarketTrend marketTrend);
     
     /**
      * Find analyst reports by signal strength.
@@ -52,7 +54,7 @@ public interface AnalystReportRepository extends JpaRepository<AnalystReport, Lo
      * @param signalStrength the signal strength to filter by
      * @return list of analyst reports with the specified signal strength
      */
-    List<AnalystReport> findBySignalStrength(AnalystReport.SignalStrength signalStrength);
+    List<AnalystReport> findBySignalStrength(SignalStrength signalStrength);
     
     /**
      * Find the most recent analyst report for a ticker.
@@ -128,7 +130,7 @@ public interface AnalystReportRepository extends JpaRepository<AnalystReport, Lo
      * @param marketTrend the market trend to count
      * @return number of reports with the specified trend
      */
-    long countByMarketTrend(AnalystReport.MarketTrend marketTrend);
+    long countByMarketTrend(MarketTrend marketTrend);
     
     /**
      * Find analyst reports with high confidence and strong signals.

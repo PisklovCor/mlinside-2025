@@ -189,4 +189,13 @@ public class MarketData {
         }
         return null;
     }
+    
+    /**
+     * Returns the 24-hour trading volume.
+     * 
+     * @return 24h volume, or null if not available
+     */
+    public BigDecimal getVolume24h() {
+        return totalVolume;
+    }
 } 

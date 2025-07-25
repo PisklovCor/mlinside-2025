@@ -3,6 +3,8 @@ package com.cryptoagents.agent;
 import com.cryptoagents.model.AnalysisResult;
 import com.cryptoagents.model.AnalystReport;
 import com.cryptoagents.model.RiskManagerReport;
+import com.cryptoagents.model.enums.MarketTrend;
+import com.cryptoagents.model.enums.SignalStrength;
 import org.springframework.stereotype.Component;
 
 /**
@@ -85,8 +87,8 @@ public class MockRiskManagerAgent extends AbstractAgent {
      * Perform risk assessment based on analyst recommendation
      */
     private void assessRisk(AnalystReport analystReport, AnalysisContext context, RiskManagerReport report) {
-        AnalystReport.MarketTrend trend = analystReport.getMarketTrend();
-        AnalystReport.SignalStrength signalStrength = analystReport.getSignalStrength();
+        MarketTrend trend = analystReport.getMarketTrend();
+        SignalStrength signalStrength = analystReport.getSignalStrength();
         double confidence = analystReport.getConfidenceScore();
         double price = context.getMarketData().getCurrentPrice().doubleValue();
         
@@ -95,7 +97,7 @@ public class MockRiskManagerAgent extends AbstractAgent {
         double riskScore;
         String riskSummary;
         
-        if (trend == AnalystReport.MarketTrend.BULLISH) {
+        if (trend == MarketTrend.BULLISH) {
             if (confidence > 0.7 && price < 60000) {
                 riskLevel = RiskManagerReport.RiskLevel.MODERATE;
                 riskScore = 0.6;
@@ -109,7 +111,7 @@ public class MockRiskManagerAgent extends AbstractAgent {
                 riskScore = 0.75;
                 riskSummary = "High risk - low confidence bullish signal";
             }
-        } else if (trend == AnalystReport.MarketTrend.BEARISH) {
+        } else if (trend == MarketTrend.BEARISH) {
             if (confidence > 0.7) {
                 riskLevel = RiskManagerReport.RiskLevel.LOW;
                 riskScore = 0.3;
@@ -139,11 +141,11 @@ public class MockRiskManagerAgent extends AbstractAgent {
         report.setConcentrationRisk(java.math.BigDecimal.valueOf(0.25));
         
         // Set position recommendations based on risk level
-        if (trend == AnalystReport.MarketTrend.BULLISH && riskLevel == RiskManagerReport.RiskLevel.LOW) {
+        if (trend == MarketTrend.BULLISH && riskLevel == RiskManagerReport.RiskLevel.LOW) {
             report.setRecommendedPositionSize(java.math.BigDecimal.valueOf(0.1)); // 10% max position
-        } else if (trend == AnalystReport.MarketTrend.BULLISH && riskLevel == RiskManagerReport.RiskLevel.MODERATE) {
+        } else if (trend == MarketTrend.BULLISH && riskLevel == RiskManagerReport.RiskLevel.MODERATE) {
             report.setRecommendedPositionSize(java.math.BigDecimal.valueOf(0.05)); // 5% max position
-        } else if (trend == AnalystReport.MarketTrend.BULLISH && riskLevel == RiskManagerReport.RiskLevel.HIGH) {
+        } else if (trend == MarketTrend.BULLISH && riskLevel == RiskManagerReport.RiskLevel.HIGH) {
             report.setRecommendedPositionSize(java.math.BigDecimal.valueOf(0.02)); // 2% max position
         } else {
             report.setRecommendedPositionSize(java.math.BigDecimal.valueOf(0.0)); // No new position

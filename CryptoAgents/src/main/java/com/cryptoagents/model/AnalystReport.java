@@ -1,5 +1,7 @@
 package com.cryptoagents.model;
 
+import com.cryptoagents.model.enums.MarketTrend;
+import com.cryptoagents.model.enums.SignalStrength;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -63,25 +65,5 @@ public class AnalystReport extends AnalysisResult {
         super(ticker, "ANALYST_AGENT");
     }
     
-    /**
-     * Enumeration for market trend directions.
-     */
-    public enum MarketTrend {
-        BULLISH,
-        BEARISH,
-        SIDEWAYS,
-        VOLATILE,
-        UNCERTAIN
-    }
-    
-    /**
-     * Enumeration for signal strength levels.
-     */
-    public enum SignalStrength {
-        VERY_WEAK,
-        WEAK,
-        MODERATE,
-        STRONG,
-        VERY_STRONG
-    }
+
 } 

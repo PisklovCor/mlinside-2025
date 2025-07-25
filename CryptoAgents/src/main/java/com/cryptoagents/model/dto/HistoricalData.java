@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Data Transfer Object representing historical cryptocurrency price data.
@@ -170,6 +171,21 @@ public class HistoricalData {
      */
     public boolean isPriceIncreasing() {
         return totalChangePercentage != null && totalChangePercentage.compareTo(BigDecimal.ZERO) > 0;
+    }
+    
+    /**
+     * Returns a list of prices from all price points.
+     * 
+     * @return List of prices
+     */
+    public List<BigDecimal> getPrices() {
+        if (pricePoints == null || pricePoints.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return pricePoints.stream()
+                .map(PricePoint::getPrice)
+                .filter(price -> price != null)
+                .collect(Collectors.toList());
     }
 
     @Override

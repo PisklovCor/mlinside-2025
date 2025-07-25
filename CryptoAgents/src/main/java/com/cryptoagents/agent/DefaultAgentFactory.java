@@ -36,7 +36,7 @@ public class DefaultAgentFactory implements AgentFactory {
         try {
             switch (agentType) {
                 case ANALYST:
-                    return applicationContext.getBean(MockAnalystAgent.class);
+                    return applicationContext.getBean(AnalystAgent.class);
                 case RISK_MANAGER:
                     return applicationContext.getBean(MockRiskManagerAgent.class);
                 case TRADER:

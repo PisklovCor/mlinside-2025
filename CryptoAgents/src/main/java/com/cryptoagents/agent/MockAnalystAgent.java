@@ -2,6 +2,8 @@ package com.cryptoagents.agent;
 
 import com.cryptoagents.model.AnalysisResult;
 import com.cryptoagents.model.AnalystReport;
+import com.cryptoagents.model.enums.MarketTrend;
+import com.cryptoagents.model.enums.SignalStrength;
 import org.springframework.stereotype.Component;
 
 /**
@@ -56,18 +58,18 @@ public class MockAnalystAgent extends AbstractAgent {
             
             // Simple mock logic for demonstration
             if (price > 50000) {
-                report.setMarketTrend(AnalystReport.MarketTrend.BULLISH);
-                report.setSignalStrength(AnalystReport.SignalStrength.STRONG);
+                report.setMarketTrend(MarketTrend.BULLISH);
+                report.setSignalStrength(SignalStrength.STRONG_BUY);
                 report.setConfidenceScore(0.75);
                 report.setResultSummary("Strong bullish trend detected above $50k resistance");
             } else if (price > 30000) {
-                report.setMarketTrend(AnalystReport.MarketTrend.SIDEWAYS);
-                report.setSignalStrength(AnalystReport.SignalStrength.MODERATE);
+                report.setMarketTrend(MarketTrend.SIDEWAYS);
+                report.setSignalStrength(SignalStrength.NEUTRAL);
                 report.setConfidenceScore(0.60);
                 report.setResultSummary("Consolidation phase, wait for breakout");
             } else {
-                report.setMarketTrend(AnalystReport.MarketTrend.BEARISH);
-                report.setSignalStrength(AnalystReport.SignalStrength.STRONG);
+                report.setMarketTrend(MarketTrend.BEARISH);
+                report.setSignalStrength(SignalStrength.STRONG_SELL);
                 report.setConfidenceScore(0.80);
                 report.setResultSummary("Bearish trend, price below key support levels");
             }
@@ -78,8 +80,8 @@ public class MockAnalystAgent extends AbstractAgent {
             report.setResistanceLevel(java.math.BigDecimal.valueOf(price * 1.1));
             report.setPriceTarget(java.math.BigDecimal.valueOf(price * 1.15));
         } else {
-            report.setMarketTrend(AnalystReport.MarketTrend.UNCERTAIN);
-            report.setSignalStrength(AnalystReport.SignalStrength.WEAK);
+            report.setMarketTrend(MarketTrend.UNKNOWN);
+            report.setSignalStrength(SignalStrength.NEUTRAL);
             report.setConfidenceScore(0.50);
             report.setResultSummary("Insufficient data for analysis");
         }

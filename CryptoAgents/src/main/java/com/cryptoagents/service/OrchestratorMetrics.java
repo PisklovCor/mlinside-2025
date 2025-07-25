@@ -1,11 +1,13 @@
 package com.cryptoagents.service;
 
+import com.cryptoagents.model.dto.MetricsResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -221,5 +223,34 @@ public class OrchestratorMetrics {
         agentExecutionTimes.clear();
         lastResetTime = System.currentTimeMillis();
         logger.info("Orchestrator metrics reset");
+    }
+    
+    /**
+     * Convert metrics to DTO for API response
+     */
+    public MetricsResponse toMetricsResponse() {
+        Map<String, MetricsResponse.AgentMetrics> agentMetricsMap = new HashMap<>();
+        
+        for (String agentName : getTrackedAgents()) {
+            MetricsResponse.AgentMetrics agentMetrics = MetricsResponse.AgentMetrics.builder()
+                    .executionCount(getAgentExecutionCount(agentName))
+                    .failureRate(getAgentFailureRate(agentName))
+                    .averageExecutionTime(getAgentAverageExecutionTime(agentName))
+                    .build();
+            agentMetricsMap.put(agentName, agentMetrics);
+        }
+        
+        return MetricsResponse.builder()
+                .totalRequests(getTotalAnalysisRequests())
+                .successfulAnalyses(getSuccessfulAnalysis())
+                .failedAnalyses(getFailedAnalysis())
+                .successRate(getSuccessRate())
+                .failureRate(getFailureRate())
+                .averageExecutionTime(getAverageExecutionTime())
+                .agentMetrics(agentMetricsMap)
+                .uptimeMs(getUptimeMs())
+                .lastResetTime(new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+                        .format(new java.util.Date(getLastResetTime())))
+                .build();
     }
 } 
