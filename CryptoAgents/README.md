@@ -1,85 +1,187 @@
-# CryptoAgents
+# CryptoAgents - Multi-Agent Crypto Analysis System
 
-Multi-agent system for cryptocurrency analysis using Spring AI.
+Проект по курсу MLinside: ИИ в разработке
 
-## Code Style Validation
+## Описание
 
-Проект использует Google CheckStyle для валидации кода по стандартам Google Java Style Guide.
+CryptoAgents - это система мультиагентного анализа криптовалют, состоящая из трех специализированных агентов:
+- **Analyst** - технический анализ и прогнозирование цен
+- **Risk Manager** - оценка рисков и управление позициями  
+- **Trader** - торговые рекомендации и стратегии
 
-### Доступные команды CheckStyle
+## Технологии
 
-#### Основная проверка
+- **Backend**: Spring Boot 3.x, Java 17+
+- **Database**: PostgreSQL 15
+- **ORM**: Spring Data JPA + Hibernate
+- **Migrations**: Flyway
+- **Code Generation**: Lombok (геттеры, сеттеры, логгеры)
+- **Containerization**: Docker, Docker Compose
+- **Testing**: JUnit 5, Spring Boot Test
+
+## Быстрый запуск
+
+### 1. Предварительные требования
+
+- Docker Desktop (для Windows/Mac) или Docker Engine + Docker Compose
+- Java 17 или выше
+- Maven 3.6+
+
+### 2. Запуск базы данных
+
+**Windows:**
 ```bash
-mvn checkstyle:check
-```
-Запускает полную проверку кода и выводит результаты в консоль. При обнаружении нарушений сборка завершается с ошибкой.
+# Запуск PostgreSQL контейнера
+scripts\db-start.bat
 
-#### Строгая проверка (профиль)
-```bash
-mvn validate -P strict-checkstyle
-```
-Запускает более строгую проверку кода с дополнительными правилами.
+# Остановка контейнера
+scripts\db-stop.bat
 
-#### Генерация отчета
-```bash
-mvn checkstyle:checkstyle
-```
-Генерирует HTML отчет с результатами проверки в `target/site/checkstyle.html`.
-
-#### Проверка только основного кода (без тестов)
-```bash
-mvn checkstyle:check -Dcheckstyle.includeTestSourceDirectory=false
-```
-
-### Конфигурация
-
-- **Основные правила**: Файл `checkstyle.xml` в корне проекта
-- **Исключения**: Файл `checkstyle-suppressions.xml` 
-- **Стандарт**: Google Java Style Guide с отступами в 2 пробела
-
-### Исключения из проверки
-
-CheckStyle автоматически исключает из проверки:
-- Сгенерированный код (`target/generated/`)
-- Тестовые файлы (частично - без требований к Javadoc)
-- Конфигурационные классы (частично)
-- DTO и entity классы (частично)
-
-### Интеграция с IDE
-
-Для работы с CheckStyle в IDE рекомендуется:
-1. Установить плагин CheckStyle для вашей IDE
-2. Импортировать файл `checkstyle.xml` как конфигурацию
-3. Настроить автоматическое форматирование по правилам Google Java Style
-
-### Основные правила
-
-- **Отступы**: 2 пробела
-- **Максимальная длина строки**: 100 символов  
-- **Импорты**: Без использования `.*`, правильный порядок
-- **Именование**: camelCase для методов/переменных, PascalCase для классов
-- **Javadoc**: Обязательный для публичных классов и методов
-
-### Автоматическое выполнение
-
-CheckStyle автоматически запускается на фазе `validate` при сборке проекта:
-```bash
-mvn compile
+# Просмотр логов
+scripts\db-logs.bat
 ```
 
-Для пропуска CheckStyle используйте:
+**Linux/Mac:**
 ```bash
-mvn compile -Dcheckstyle.skip=true
+# Сделать скрипты исполняемыми (только один раз)
+chmod +x scripts/*.sh
+
+# Запуск PostgreSQL контейнера
+./scripts/db-start.sh
+
+# Остановка контейнера
+./scripts/db-stop.sh
+
+# Просмотр логов
+./scripts/db-logs.sh
 ```
 
-### Полезные команды
-
-Проверка конкретного файла:
+**Альтернативно (Docker Compose напрямую):**
 ```bash
-mvn checkstyle:check -Dcheckstyle.includes="**/SpecificFile.java"
+# Запуск только PostgreSQL
+docker-compose up -d postgres
+
+# Запуск PostgreSQL + PgAdmin
+docker-compose up -d
+
+# Остановка всех сервисов
+docker-compose down
 ```
 
-Проверка с выводом только ошибок:
+### 3. Запуск приложения
+
 ```bash
-mvn checkstyle:check -Dcheckstyle.violationSeverity=error
-``` 
+cd CryptoAgents
+mvn spring-boot:run
+```
+
+### 4. Доступ к сервисам
+
+- **API**: http://localhost:8081
+- **PgAdmin** (опционально): http://localhost:8080
+  - Email: admin@cryptoagents.com
+  - Password: admin
+- **PostgreSQL**: localhost:5432
+  - Database: cryptoagents
+  - Username: postgres
+  - Password: password
+
+## Разработка
+
+### Подключение к базе данных
+
+Конфигурация базы данных находится в файле `application.properties`:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/cryptoagents
+spring.datasource.username=postgres
+spring.datasource.password=password
+```
+
+### Миграции базы данных
+
+Flyway автоматически применяет миграции при запуске приложения. Файлы миграций находятся в:
+```
+src/main/resources/db/migration/
+```
+
+### Структура проекта
+
+```
+CryptoAgents/
+├── src/main/java/com/cryptoagents/
+│   ├── agent/          # Агенты анализа
+│   ├── api/            # REST контроллеры
+│   ├── config/         # Конфигурация Spring
+│   ├── model/          # JPA сущности
+│   ├── repository/     # Spring Data репозитории
+│   └── service/        # Бизнес-логика
+├── src/main/resources/
+│   ├── db/migration/   # Flyway миграции
+│   └── application.properties
+├── docker/
+│   └── init-scripts/   # PostgreSQL инициализация
+└── scripts/            # Утилиты управления БД
+```
+
+### Логгирование и Lombok
+
+Проект использует **SLF4J API** с **Logback** и **Lombok** для упрощения кода:
+
+**Добавление логгера в класс (Lombok):**
+```java
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Service
+public class MyService {
+    
+    public void doSomething() {
+        log.info("Выполняю операцию...");
+        log.debug("Детальная информация: {}", variable);
+        log.warn("Предупреждение о потенциальной проблеме");
+        log.error("Ошибка при выполнении: {}", errorMessage, exception);
+    }
+}
+```
+
+**Упрощение классов с Lombok:**
+```java
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+public class MyDto {
+    private String name;
+    private Integer value;
+    
+    // Lombok автоматически генерирует:
+    // - Геттеры и сеттеры
+    // - toString()
+    // - equals() и hashCode()
+    // - Конструктор без аргументов
+}
+```
+
+**Конфигурация логгирования:**
+- **Файл конфигурации**: `src/main/resources/logback-spring.xml`
+- **Профили**: dev (подробное логгирование), prod (минимальное)
+- **Файлы логов**: `logs/crypto-agents.log`, `logs/crypto-agents-error.log`
+
+**Уровни логгирования по профилям:**
+- **dev**: DEBUG для com.cryptoagents, INFO для остальных
+- **prod**: INFO для com.cryptoagents, WARN для остальных
+
+## Тестирование
+
+```bash
+# Запуск всех тестов
+mvn test
+
+# Запуск конкретного теста
+mvn test -Dtest=ClassName
+
+# Запуск с профилем test
+mvn test -Dspring.profiles.active=test
+```
