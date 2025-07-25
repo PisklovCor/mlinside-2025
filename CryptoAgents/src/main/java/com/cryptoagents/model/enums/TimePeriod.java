@@ -10,37 +10,37 @@ public enum TimePeriod {
     /**
      * Data for the last 24 hours
      */
-    ONE_DAY("1", "24 hours", 1),
+    ONE_DAY("1", "1 Day", 1),
     
     /**
      * Data for the last 7 days
      */
-    ONE_WEEK("7", "7 days", 7),
+    ONE_WEEK("7", "1 Week", 7),
     
     /**
      * Data for the last 30 days
      */
-    ONE_MONTH("30", "30 days", 30),
+    ONE_MONTH("30", "1 Month", 30),
     
     /**
      * Data for the last 3 months
      */
-    THREE_MONTHS("90", "3 months", 90),
+    THREE_MONTHS("90", "3 Months", 90),
     
     /**
      * Data for the last 6 months
      */
-    SIX_MONTHS("180", "6 months", 180),
+    SIX_MONTHS("180", "6 Months", 180),
     
     /**
      * Data for the last year
      */
-    ONE_YEAR("365", "1 year", 365),
+    ONE_YEAR("365", "1 Year", 365),
     
     /**
      * Maximum available historical data
      */
-    MAX("max", "All available", Integer.MAX_VALUE);
+    MAX("max", "All Time", -1);
 
     private final String apiValue;
     private final String displayName;
@@ -73,7 +73,7 @@ public enum TimePeriod {
     /**
      * Gets the number of days represented by this time period.
      * 
-     * @return The number of days
+     * @return The number of days (-1 for unlimited/max)
      */
     public int getDays() {
         return days;
@@ -81,13 +81,23 @@ public enum TimePeriod {
 
     /**
      * Finds a TimePeriod by its API value.
+     * Supports case-insensitive matching and trims whitespace.
      * 
      * @param apiValue The API value to search for
      * @return The matching TimePeriod, or null if not found
      */
     public static TimePeriod fromApiValue(String apiValue) {
+        if (apiValue == null) {
+            return null;
+        }
+        
+        String trimmedValue = apiValue.trim();
+        if (trimmedValue.isEmpty()) {
+            return null;
+        }
+        
         for (TimePeriod period : values()) {
-            if (period.apiValue.equals(apiValue)) {
+            if (period.apiValue.equalsIgnoreCase(trimmedValue)) {
                 return period;
             }
         }

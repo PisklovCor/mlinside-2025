@@ -68,9 +68,13 @@ public class CryptoCurrency {
      * Returns the ticker symbol in uppercase.
      * 
      * @return Uppercase ticker symbol
+     * @throws NullPointerException if symbol is null
      */
     public String getTickerUpperCase() {
-        return symbol != null ? symbol.toUpperCase() : null;
+        if (symbol == null) {
+            throw new NullPointerException("Symbol cannot be null");
+        }
+        return symbol.toUpperCase();
     }
 
     /**
@@ -84,10 +88,18 @@ public class CryptoCurrency {
 
     /**
      * Checks if the price has increased in the last 24 hours.
+     * Uses priceChange24h if priceChangePercentage24h is not available.
      * 
-     * @return true if price change percentage is positive
+     * @return true if price change is positive
      */
     public boolean isPriceIncreasing() {
-        return priceChangePercentage24h != null && priceChangePercentage24h.compareTo(BigDecimal.ZERO) > 0;
+        // First try percentage change, fallback to absolute change
+        if (priceChangePercentage24h != null) {
+            return priceChangePercentage24h.compareTo(BigDecimal.ZERO) > 0;
+        }
+        if (priceChange24h != null) {
+            return priceChange24h.compareTo(BigDecimal.ZERO) > 0;
+        }
+        return false;
     }
 } 

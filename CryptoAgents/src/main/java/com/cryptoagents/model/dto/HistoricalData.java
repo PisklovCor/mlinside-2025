@@ -123,19 +123,23 @@ public class HistoricalData {
             }
         }
 
-        this.minPrice = min;
-        this.maxPrice = max;
-        this.averagePrice = sum.divide(BigDecimal.valueOf(pricePoints.size()), 8, BigDecimal.ROUND_HALF_UP);
+        // Normalize all values to same scale for consistency
+        this.minPrice = min != null ? min.setScale(2, BigDecimal.ROUND_HALF_UP) : null;
+        this.maxPrice = max != null ? max.setScale(2, BigDecimal.ROUND_HALF_UP) : null;
+        this.averagePrice = sum.divide(BigDecimal.valueOf(pricePoints.size()), 2, BigDecimal.ROUND_HALF_UP);
 
         if (!pricePoints.isEmpty()) {
-            this.startPrice = pricePoints.get(0).getPrice();
-            this.endPrice = pricePoints.get(pricePoints.size() - 1).getPrice();
+            this.startPrice = pricePoints.get(0).getPrice() != null ? 
+                pricePoints.get(0).getPrice().setScale(2, BigDecimal.ROUND_HALF_UP) : null;
+            this.endPrice = pricePoints.get(pricePoints.size() - 1).getPrice() != null ?
+                pricePoints.get(pricePoints.size() - 1).getPrice().setScale(2, BigDecimal.ROUND_HALF_UP) : null;
             
             if (startPrice != null && endPrice != null && startPrice.compareTo(BigDecimal.ZERO) > 0) {
-                this.totalChange = endPrice.subtract(startPrice);
-                this.totalChangePercentage = totalChange
-                        .divide(startPrice, 8, BigDecimal.ROUND_HALF_UP)
-                        .multiply(BigDecimal.valueOf(100));
+                BigDecimal change = endPrice.subtract(startPrice);
+                this.totalChange = change.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO : change.setScale(2, BigDecimal.ROUND_HALF_UP);
+                
+                BigDecimal percentage = change.divide(startPrice, 4, BigDecimal.ROUND_HALF_UP).multiply(BigDecimal.valueOf(100));
+                this.totalChangePercentage = percentage.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO : percentage;
             }
         }
     }
@@ -166,5 +170,11 @@ public class HistoricalData {
      */
     public boolean isPriceIncreasing() {
         return totalChangePercentage != null && totalChangePercentage.compareTo(BigDecimal.ZERO) > 0;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("HistoricalData{ticker='%s', period=%s, dataPoints=%d, minPrice=%s, maxPrice=%s}",
+                ticker, period != null ? period.name() : null, getDataPointsCount(), minPrice, maxPrice);
     }
 } 

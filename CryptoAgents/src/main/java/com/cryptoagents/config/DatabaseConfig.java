@@ -1,8 +1,8 @@
 package com.cryptoagents.config;
 
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -30,13 +30,11 @@ public class DatabaseConfig {
      */
     @Slf4j
     @Component
+    @RequiredArgsConstructor
     public static class DatabaseConnectionValidator implements CommandLineRunner {
 
-        @Autowired
-        private DataSource dataSource;
-
-        @Autowired
-        private JdbcTemplate jdbcTemplate;
+        private final DataSource dataSource;
+        private final JdbcTemplate jdbcTemplate;
 
         @Override
         public void run(String... args) throws Exception {

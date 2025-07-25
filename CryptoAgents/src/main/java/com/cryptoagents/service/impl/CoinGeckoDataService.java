@@ -40,7 +40,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CoinGeckoDataService implements CryptoDataService {
 
     private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final CryptoDataFallbackService fallbackService;
     
     // Simple in-memory cache for supported cryptocurrencies
@@ -51,7 +51,6 @@ public class CoinGeckoDataService implements CryptoDataService {
     public CoinGeckoDataService(@Qualifier("coinGeckoRestTemplate") RestTemplate restTemplate,
                                 CryptoDataFallbackService fallbackService) {
         this.restTemplate = restTemplate;
-        this.objectMapper = new ObjectMapper();
         this.fallbackService = fallbackService;
     }
 
