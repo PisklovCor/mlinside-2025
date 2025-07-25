@@ -89,18 +89,18 @@ class FlywayMigrationTest extends BaseSpringBootTest {
     void testDatabaseSchemaAfterMigration() {
         logTestStart("testDatabaseSchemaAfterMigration");
         
-        // Test that expected tables exist
+        // Test that expected tables exist (H2 uses lowercase table names in PostgreSQL mode)
         String[] expectedTables = {
-            "ANALYSIS_REPORTS",
-            "ANALYSIS_RESULTS", 
-            "ANALYST_REPORTS", 
-            "RISK_MANAGER_REPORTS", 
-            "TRADER_REPORTS"
+            "analysis_reports",
+            "analysis_results", 
+            "analyst_reports", 
+            "risk_manager_reports", 
+            "trader_reports"
         };
         
         for (String table : expectedTables) {
             Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = ?", 
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE LOWER(TABLE_NAME) = ?", 
                 Integer.class, table);
             assertEquals(1, count, "Table " + table + " should exist");
         }
@@ -114,18 +114,18 @@ class FlywayMigrationTest extends BaseSpringBootTest {
         
         // Test that we can describe the table structure
         var columns = jdbcTemplate.queryForList(
-            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'ANALYSIS_RESULTS'");
+            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE LOWER(TABLE_NAME) = 'analysis_results'");
         
         assertFalse(columns.isEmpty(), "ANALYSIS_RESULTS table should have columns");
         
         // Check for key columns
         List<String> columnNames = columns.stream()
-            .map(row -> (String) row.get("COLUMN_NAME"))
+            .map(row -> ((String) row.get("COLUMN_NAME")).toLowerCase())
             .collect(Collectors.toList());
             
-        assertTrue(columnNames.contains("ID"), "Should have ID column");
-        assertTrue(columnNames.contains("AGENT_TYPE"), "Should have AGENT_TYPE column");
-        assertTrue(columnNames.contains("TICKER"), "Should have TICKER column");
+        assertTrue(columnNames.contains("id"), "Should have ID column");
+        assertTrue(columnNames.contains("agent_type"), "Should have AGENT_TYPE column");
+        assertTrue(columnNames.contains("ticker"), "Should have TICKER column");
         
         logTestEnd("testAnalysisResultsTableStructure");
     }
@@ -135,16 +135,16 @@ class FlywayMigrationTest extends BaseSpringBootTest {
         logTestStart("testAnalystReportsTableStructure");
         
         var columns = jdbcTemplate.queryForList(
-            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'ANALYST_REPORTS'");
+            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE LOWER(TABLE_NAME) = 'analyst_reports'");
         
         assertFalse(columns.isEmpty(), "ANALYST_REPORTS table should have columns");
         
         List<String> columnNames = columns.stream()
-            .map(row -> (String) row.get("COLUMN_NAME"))
+            .map(row -> ((String) row.get("COLUMN_NAME")).toLowerCase())
             .collect(Collectors.toList());
             
-        assertTrue(columnNames.contains("ID"), "Should have ID column");
-        assertTrue(columnNames.contains("MARKET_TREND"), "Should have MARKET_TREND column");
+        assertTrue(columnNames.contains("id"), "Should have ID column");
+        assertTrue(columnNames.contains("market_trend"), "Should have MARKET_TREND column");
         
         logTestEnd("testAnalystReportsTableStructure");
     }
@@ -154,16 +154,16 @@ class FlywayMigrationTest extends BaseSpringBootTest {
         logTestStart("testRiskManagerReportsTableStructure");
         
         var columns = jdbcTemplate.queryForList(
-            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'RISK_MANAGER_REPORTS'");
+            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE LOWER(TABLE_NAME) = 'risk_manager_reports'");
         
         assertFalse(columns.isEmpty(), "RISK_MANAGER_REPORTS table should have columns");
         
         List<String> columnNames = columns.stream()
-            .map(row -> (String) row.get("COLUMN_NAME"))
+            .map(row -> ((String) row.get("COLUMN_NAME")).toLowerCase())
             .collect(Collectors.toList());
             
-        assertTrue(columnNames.contains("ID"), "Should have ID column");
-        assertTrue(columnNames.contains("RISK_LEVEL"), "Should have RISK_LEVEL column");
+        assertTrue(columnNames.contains("id"), "Should have ID column");
+        assertTrue(columnNames.contains("risk_level"), "Should have RISK_LEVEL column");
         
         logTestEnd("testRiskManagerReportsTableStructure");
     }
@@ -173,16 +173,16 @@ class FlywayMigrationTest extends BaseSpringBootTest {
         logTestStart("testTraderReportsTableStructure");
         
         var columns = jdbcTemplate.queryForList(
-            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'TRADER_REPORTS'");
+            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE LOWER(TABLE_NAME) = 'trader_reports'");
         
         assertFalse(columns.isEmpty(), "TRADER_REPORTS table should have columns");
         
         List<String> columnNames = columns.stream()
-            .map(row -> (String) row.get("COLUMN_NAME"))
+            .map(row -> ((String) row.get("COLUMN_NAME")).toLowerCase())
             .collect(Collectors.toList());
             
-        assertTrue(columnNames.contains("ID"), "Should have ID column");
-        assertTrue(columnNames.contains("ACTION_RECOMMENDATION"), "Should have ACTION_RECOMMENDATION column");
+        assertTrue(columnNames.contains("id"), "Should have ID column");
+        assertTrue(columnNames.contains("action_recommendation"), "Should have ACTION_RECOMMENDATION column");
         
         logTestEnd("testTraderReportsTableStructure");
     }
@@ -193,7 +193,7 @@ class FlywayMigrationTest extends BaseSpringBootTest {
         
         // Test that indexes were created successfully
         var indexes = jdbcTemplate.queryForList(
-            "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_NAME LIKE '%REPORTS%'");
+            "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE LOWER(TABLE_NAME) LIKE '%reports%'");
         
         assertFalse(indexes.isEmpty(), "Should have indexes on report tables");
         
