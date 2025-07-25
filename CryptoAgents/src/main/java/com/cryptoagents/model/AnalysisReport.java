@@ -19,7 +19,7 @@ public class AnalysisReport {
     @Column(nullable = false)
     private String symbol;
     
-    @Column(name = "created_at", nullable = false)
+    @Column(nullable = false)
     private LocalDateTime createdAt;
     
     @Column(columnDefinition = "TEXT")
@@ -30,13 +30,18 @@ public class AnalysisReport {
         this.createdAt = LocalDateTime.now();
     }
     
-    public AnalysisReport(String symbol, String analysisResult) {
-        this();
+    public AnalysisReport(String symbol) {
         this.symbol = symbol;
-        this.analysisResult = analysisResult;
+        this.createdAt = LocalDateTime.now();
     }
     
-    // Getters and setters
+    public AnalysisReport(String symbol, String analysisResult) {
+        this.symbol = symbol;
+        this.analysisResult = analysisResult;
+        this.createdAt = LocalDateTime.now();
+    }
+    
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -67,5 +72,16 @@ public class AnalysisReport {
     
     public void setAnalysisResult(String analysisResult) {
         this.analysisResult = analysisResult;
+    }
+    
+    // toString method for debugging
+    @Override
+    public String toString() {
+        return "AnalysisReport{" +
+                "id=" + id +
+                ", symbol='" + symbol + '\'' +
+                ", createdAt=" + createdAt +
+                ", analysisResult='" + analysisResult + '\'' +
+                '}';
     }
 } 

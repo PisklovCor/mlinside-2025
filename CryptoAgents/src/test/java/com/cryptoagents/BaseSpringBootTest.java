@@ -9,10 +9,10 @@ import org.springframework.test.context.ActiveProfiles;
  * Содержит общую конфигурацию для тестирования.
  */
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 public abstract class BaseSpringBootTest {
-    
+
     /**
      * Базовая инициализация для всех тестов
      */

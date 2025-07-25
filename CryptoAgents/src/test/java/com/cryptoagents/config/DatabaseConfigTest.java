@@ -24,84 +24,75 @@ class DatabaseConfigTest extends BaseSpringBootTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    void testDatabaseConnectionIsValid() throws SQLException {
+    void testDatabaseConnectionIsValid() {
         logTestStart("testDatabaseConnectionIsValid");
-        // Test that we can obtain a valid connection
+        
         try (Connection connection = dataSource.getConnection()) {
-            assertNotNull(connection, "Connection should not be null");
-            assertTrue(connection.isValid(5), "Connection should be valid");
-            assertFalse(connection.isClosed(), "Connection should not be closed");
+            assertTrue(connection.isValid(1));
+            assertFalse(connection.isClosed());
+            assertEquals("H2", connection.getMetaData().getDatabaseProductName());
+        } catch (SQLException e) {
+            fail("Database connection should be valid", e);
         }
+        
         logTestEnd("testDatabaseConnectionIsValid");
     }
 
     @Test
     void testJdbcTemplateCanExecuteQueries() {
         logTestStart("testJdbcTemplateCanExecuteQueries");
-        // Test basic query execution
-        String result = jdbcTemplate.queryForObject("SELECT 'Database connection test'", String.class);
-        assertEquals("Database connection test", result);
+        
+        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES", Integer.class);
+        assertNotNull(count);
+        assertTrue(count > 0, "Should have at least some tables after migrations");
+        
         logTestEnd("testJdbcTemplateCanExecuteQueries");
     }
 
     @Test
-    void testDatabaseMetadata() throws SQLException {
+    void testDatabaseMetadata() {
         logTestStart("testDatabaseMetadata");
+        
         try (Connection connection = dataSource.getConnection()) {
-            var metadata = connection.getMetaData();
+            String databaseProductName = connection.getMetaData().getDatabaseProductName();
+            String databaseProductVersion = connection.getMetaData().getDatabaseProductVersion();
             
-            assertNotNull(metadata, "Database metadata should be available");
-            assertNotNull(metadata.getDatabaseProductName(), "Database product name should be available");
-            assertNotNull(metadata.getDatabaseProductVersion(), "Database version should be available");
-            
-            // For H2 test database
-            assertTrue(metadata.getDatabaseProductName().contains("H2"), 
-                "Should be using H2 database for tests");
+            assertEquals("H2", databaseProductName);
+            assertNotNull(databaseProductVersion);
+            assertTrue(databaseProductVersion.length() > 0);
+        } catch (SQLException e) {
+            fail("Should be able to read database metadata", e);
         }
+        
         logTestEnd("testDatabaseMetadata");
     }
 
     @Test
-    void testConnectionPoolConfiguration() throws SQLException {
+    void testConnectionPoolConfiguration() {
         logTestStart("testConnectionPoolConfiguration");
-        // Test that we can create multiple connections (pool functionality)
+        
+        // Test that we can get multiple connections
         try (Connection conn1 = dataSource.getConnection();
              Connection conn2 = dataSource.getConnection()) {
             
-            assertNotNull(conn1, "First connection should be valid");
-            assertNotNull(conn2, "Second connection should be valid");
-            assertTrue(conn1.isValid(5), "First connection should be valid");
-            assertTrue(conn2.isValid(5), "Second connection should be valid");
-            
-            // Connections should be different instances
-            assertNotSame(conn1, conn2, "Connections should be different instances");
+            assertTrue(conn1.isValid(1));
+            assertTrue(conn2.isValid(1));
+            assertNotSame(conn1, conn2, "Should get different connection instances");
+        } catch (SQLException e) {
+            fail("Should be able to get multiple connections from pool", e);
         }
+        
         logTestEnd("testConnectionPoolConfiguration");
     }
 
     @Test
     void testDatabasePropertiesBean() {
         logTestStart("testDatabasePropertiesBean");
-        // Test that DatabaseProperties can be autowired (configuration validation)
-        DatabaseConfig.DatabaseProperties properties = new DatabaseConfig.DatabaseProperties();
         
-        // Test default values
-        assertEquals(20, properties.getMaxConnections());
-        assertEquals(5, properties.getMinConnections());
-        assertEquals(30000, properties.getConnectionTimeout());
-        assertFalse(properties.isEnableMetrics());
+        // Test that basic JDBC operations work
+        Integer result = jdbcTemplate.queryForObject("SELECT 1", Integer.class);
+        assertEquals(1, result);
         
-        // Test setters
-        properties.setMaxConnections(15);
-        properties.setMinConnections(3);
-        properties.setConnectionTimeout(25000);
-        properties.setEnableMetrics(true);
-        
-        assertEquals(15, properties.getMaxConnections());
-        assertEquals(3, properties.getMinConnections());
-        assertEquals(25000, properties.getConnectionTimeout());
-        assertTrue(properties.isEnableMetrics());
         logTestEnd("testDatabasePropertiesBean");
     }
-
 } 

@@ -40,16 +40,22 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CoinGeckoDataService implements CryptoDataService {
 
     private final RestClient restClient;
-    private final ObjectMapper objectMapper = new ObjectMapper();
     private final CryptoDataFallbackService fallbackService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     
     // Simple in-memory cache for supported cryptocurrencies
     private final Map<String, String> tickerToIdMapping = new ConcurrentHashMap<>();
     private volatile LocalDateTime lastMappingUpdate = null;
     private static final long MAPPING_CACHE_DURATION_HOURS = 24;
 
+    /**
+     * Constructor with dependency injection.
+     * 
+     * @param restClient RestClient configured for CoinGecko API
+     * @param fallbackService Fallback service for when API is unavailable
+     */
     public CoinGeckoDataService(@Qualifier("coinGeckoRestClient") RestClient restClient,
-                                CryptoDataFallbackService fallbackService) {
+                               CryptoDataFallbackService fallbackService) {
         this.restClient = restClient;
         this.fallbackService = fallbackService;
     }

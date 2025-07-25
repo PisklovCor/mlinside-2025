@@ -1,10 +1,14 @@
 package com.cryptoagents.model;
 
+import com.cryptoagents.model.dto.CryptoCurrency;
+import com.cryptoagents.model.dto.HistoricalData;
+import com.cryptoagents.model.enums.TimePeriod;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -12,8 +16,8 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for JPA entity mapping and inheritance structure.
- * Validates that all entity classes are properly configured.
+ * Tests for entity mappings and JPA functionality.
+ * Uses @DataJpaTest for optimized testing with in-memory database.
  */
 @DataJpaTest
 @ActiveProfiles("test")
@@ -129,6 +133,7 @@ class EntityMappingTest {
         // Test that inheritance works correctly
         AnalystReport analystReport = new AnalystReport("SOL");
         RiskManagerReport riskReport = new RiskManagerReport("SOL");
+        riskReport.setRiskLevel(RiskManagerReport.RiskLevel.MODERATE); // Required field
         TraderReport traderReport = new TraderReport("SOL");
         traderReport.setActionRecommendation(TraderReport.TradingAction.HOLD); // Required field
         
