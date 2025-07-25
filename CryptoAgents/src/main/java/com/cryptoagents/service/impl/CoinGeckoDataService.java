@@ -20,7 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -39,7 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class CoinGeckoDataService implements CryptoDataService {
 
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final CryptoDataFallbackService fallbackService;
     
@@ -48,9 +48,9 @@ public class CoinGeckoDataService implements CryptoDataService {
     private volatile LocalDateTime lastMappingUpdate = null;
     private static final long MAPPING_CACHE_DURATION_HOURS = 24;
 
-    public CoinGeckoDataService(@Qualifier("coinGeckoRestTemplate") RestTemplate restTemplate,
+    public CoinGeckoDataService(@Qualifier("coinGeckoRestClient") RestClient restClient,
                                 CryptoDataFallbackService fallbackService) {
-        this.restTemplate = restTemplate;
+        this.restClient = restClient;
         this.fallbackService = fallbackService;
     }
 
@@ -74,7 +74,10 @@ public class CoinGeckoDataService implements CryptoDataService {
 
             String url = "/simple/price?ids={coinId}&vs_currencies=usd";
             
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class, coinId);
+            ResponseEntity<String> response = restClient.get()
+                    .uri(url, coinId)
+                    .retrieve()
+                    .toEntity(String.class);
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 JsonNode jsonNode = objectMapper.readTree(response.getBody());
@@ -139,8 +142,10 @@ public class CoinGeckoDataService implements CryptoDataService {
 
             String url = "/coins/{coinId}/market_chart?vs_currency=usd&days={days}";
             
-            ResponseEntity<String> response = restTemplate.getForEntity(
-                url, String.class, coinId, period.getApiValue());
+            ResponseEntity<String> response = restClient.get()
+                    .uri(url, coinId, period.getApiValue())
+                    .retrieve()
+                    .toEntity(String.class);
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 JsonNode jsonNode = objectMapper.readTree(response.getBody());
@@ -224,7 +229,10 @@ public class CoinGeckoDataService implements CryptoDataService {
             String url = "/coins/markets?vs_currency=usd&ids={coinId}&order=market_cap_desc" +
                         "&per_page=1&page=1&sparkline=false&price_change_percentage=24h,7d,30d";
             
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class, coinId);
+            ResponseEntity<String> response = restClient.get()
+                    .uri(url, coinId)
+                    .retrieve()
+                    .toEntity(String.class);
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 List<MarketData> marketDataList = objectMapper.readValue(
@@ -291,7 +299,10 @@ public class CoinGeckoDataService implements CryptoDataService {
             String url = "/coins/{coinId}?localization=false&tickers=false&market_data=true" +
                         "&community_data=false&developer_data=false&sparkline=false";
             
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class, coinId);
+            ResponseEntity<String> response = restClient.get()
+                    .uri(url, coinId)
+                    .retrieve()
+                    .toEntity(String.class);
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 JsonNode jsonNode = objectMapper.readTree(response.getBody());
@@ -364,7 +375,10 @@ public class CoinGeckoDataService implements CryptoDataService {
             
             String url = "/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false";
             
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            ResponseEntity<String> response = restClient.get()
+                    .uri(url)
+                    .retrieve()
+                    .toEntity(String.class);
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 List<CryptoCurrency> cryptocurrencies = objectMapper.readValue(
@@ -417,7 +431,10 @@ public class CoinGeckoDataService implements CryptoDataService {
             }
             
             String url = "/ping";
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            ResponseEntity<String> response = restClient.get()
+                    .uri(url)
+                    .retrieve()
+                    .toEntity(String.class);
             boolean available = response.getStatusCode() == HttpStatus.OK;
             
             if (available) {
