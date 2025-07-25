@@ -4,6 +4,8 @@ import com.cryptoagents.model.dto.CryptoCurrency;
 import com.cryptoagents.model.dto.HistoricalData;
 import com.cryptoagents.model.dto.MarketData;
 import com.cryptoagents.model.enums.TimePeriod;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -362,29 +364,14 @@ public class CryptoDataFallbackService {
     /**
      * Statistics holder for fallback service monitoring.
      */
+    @AllArgsConstructor
+    @Getter
     public static class FallbackStats {
         private final CircuitBreakerState circuitState;
         private final int failureCount;
         private final int emergencyPricesCount;
         private final int emergencyMarketDataCount;
         private final long lastFailureTime;
-
-        public FallbackStats(CircuitBreakerState circuitState, int failureCount, 
-                           int emergencyPricesCount, int emergencyMarketDataCount, 
-                           long lastFailureTime) {
-            this.circuitState = circuitState;
-            this.failureCount = failureCount;
-            this.emergencyPricesCount = emergencyPricesCount;
-            this.emergencyMarketDataCount = emergencyMarketDataCount;
-            this.lastFailureTime = lastFailureTime;
-        }
-
-        // Getters
-        public CircuitBreakerState getCircuitState() { return circuitState; }
-        public int getFailureCount() { return failureCount; }
-        public int getEmergencyPricesCount() { return emergencyPricesCount; }
-        public int getEmergencyMarketDataCount() { return emergencyMarketDataCount; }
-        public long getLastFailureTime() { return lastFailureTime; }
 
         @Override
         public String toString() {

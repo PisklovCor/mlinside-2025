@@ -1,122 +1,108 @@
 package com.cryptoagents.config;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
-import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.concurrent.ConcurrentMapCache;
 import org.springframework.cache.support.SimpleCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
- * Configuration class for Spring Cache management.
+ * Configuration class for caching infrastructure.
  * 
- * This configuration sets up different cache regions with appropriate TTL (Time To Live)
- * settings for cryptocurrency data to optimize API calls and respect rate limits.
+ * This class sets up caching mechanisms for improving performance
+ * of cryptocurrency data retrieval and analysis operations.
+ * 
+ * Cache Categories:
+ * - Price Data: Short-term cache for current prices (1 minute TTL)
+ * - Market Data: Medium-term cache for market information (5 minutes TTL)
+ * - Historical Data: Long-term cache for historical price data (15 minutes TTL)
+ * - Analysis Results: Cache for agent analysis results (10 minutes TTL)
  */
-@Slf4j
 @Configuration
-@EnableCaching
 public class CacheConfig {
 
-    // Cache names constants
-    public static final String CRYPTO_PRICE_CACHE = "cryptoPrice";
-    public static final String CRYPTO_MARKET_DATA_CACHE = "cryptoMarketData";
-    public static final String CRYPTO_HISTORICAL_DATA_CACHE = "cryptoHistoricalData";
-    public static final String CRYPTO_INFO_CACHE = "cryptoInfo";
-    public static final String CRYPTO_SUPPORTED_LIST_CACHE = "cryptoSupportedList";
-    public static final String CRYPTO_SERVICE_STATUS_CACHE = "cryptoServiceStatus";
+    // Cache names as constants
+    public static final String PRICE_CACHE = "priceData";
+    public static final String MARKET_CACHE = "marketData";
+    public static final String HISTORICAL_CACHE = "historicalData";
+    public static final String ANALYSIS_CACHE = "analysisResults";
+    public static final String API_RESPONSE_CACHE = "apiResponseCache";
+
+    // TTL values in milliseconds
+    private static final long PRICE_CACHE_TTL = 60_000L;        // 1 minute
+    private static final long MARKET_CACHE_TTL = 300_000L;      // 5 minutes
+    private static final long HISTORICAL_CACHE_TTL = 900_000L;  // 15 minutes
+    private static final long ANALYSIS_CACHE_TTL = 600_000L;    // 10 minutes
+    private static final long API_RESPONSE_TTL = 180_000L;      // 3 minutes
 
     /**
-     * Creates and configures the main cache manager with different cache regions.
+     * Creates and configures the cache manager with multiple named caches.
+     * Each cache has different TTL settings optimized for the type of data.
      * 
-     * @return Configured CacheManager with TTL-enabled caches
+     * @return Configured cache manager
      */
     @Bean
     public CacheManager cacheManager() {
-        log.info("🗄️ Configuring cache manager with TTL-enabled caches");
-        
         SimpleCacheManager cacheManager = new SimpleCacheManager();
         
         cacheManager.setCaches(Arrays.asList(
-            // Price cache - 5 minutes TTL (frequent updates needed)
-            createTTLCache(CRYPTO_PRICE_CACHE, TimeUnit.MINUTES.toMillis(5)),
-            
-            // Market data cache - 10 minutes TTL (moderate update frequency)
-            createTTLCache(CRYPTO_MARKET_DATA_CACHE, TimeUnit.MINUTES.toMillis(10)),
-            
-            // Historical data cache - 1 hour TTL (stable data, expensive to fetch)
-            createTTLCache(CRYPTO_HISTORICAL_DATA_CACHE, TimeUnit.HOURS.toMillis(1)),
-            
-            // Crypto info cache - 1 hour TTL (rarely changes)
-            createTTLCache(CRYPTO_INFO_CACHE, TimeUnit.HOURS.toMillis(1)),
-            
-            // Supported cryptocurrencies list cache - 24 hours TTL (very stable)
-            createTTLCache(CRYPTO_SUPPORTED_LIST_CACHE, TimeUnit.HOURS.toMillis(24)),
-            
-            // Service status cache - 2 minutes TTL (health check)
-            createTTLCache(CRYPTO_SERVICE_STATUS_CACHE, TimeUnit.MINUTES.toMillis(2))
+            createTTLCache(PRICE_CACHE, PRICE_CACHE_TTL),
+            createTTLCache(MARKET_CACHE, MARKET_CACHE_TTL),
+            createTTLCache(HISTORICAL_CACHE, HISTORICAL_CACHE_TTL),
+            createTTLCache(ANALYSIS_CACHE, ANALYSIS_CACHE_TTL),
+            createTTLCache(API_RESPONSE_CACHE, API_RESPONSE_TTL)
         ));
         
-        log.info("✅ Cache manager configured with {} cache regions", cacheManager.getCacheNames().size());
         return cacheManager;
     }
 
     /**
-     * Creates a TTL-enabled cache with the specified name and expiration time.
+     * Creates a TTL (Time To Live) enabled cache.
      * 
-     * @param cacheName The name of the cache
-     * @param ttlMillis Time to live in milliseconds
-     * @return TTL-enabled ConcurrentMapCache
+     * @param name Cache name
+     * @param ttlMs Time to live in milliseconds
+     * @return Configured cache with TTL support
      */
-    private TTLConcurrentMapCache createTTLCache(String cacheName, long ttlMillis) {
-        log.debug("Creating TTL cache '{}' with TTL: {}ms", cacheName, ttlMillis);
-        return new TTLConcurrentMapCache(cacheName, ttlMillis);
+    private Cache createTTLCache(String name, long ttlMs) {
+        return new TTLConcurrentMapCache(name, ttlMs);
     }
 
     /**
-     * Custom ConcurrentMapCache implementation with TTL (Time To Live) support.
-     * 
-     * This cache automatically expires entries after the specified TTL period,
-     * ensuring that cryptocurrency data doesn't become stale.
+     * Custom cache implementation with TTL (Time To Live) support.
+     * Wraps values with expiration timestamps to enable automatic cleanup.
      */
-    public static class TTLConcurrentMapCache extends ConcurrentMapCache {
-        
-        private final long ttlMillis;
+    private static class TTLConcurrentMapCache extends ConcurrentMapCache {
+        private final long ttlMs;
 
-        public TTLConcurrentMapCache(String name, long ttlMillis) {
-            super(name);
-            this.ttlMillis = ttlMillis;
+        public TTLConcurrentMapCache(String name, long ttlMs) {
+            super(name, true);
+            this.ttlMs = ttlMs;
         }
 
         @Override
         public void put(Object key, Object value) {
-            if (value != null) {
-                TTLValueWrapper wrapper = new TTLValueWrapper(value, System.currentTimeMillis() + ttlMillis);
-                super.put(key, wrapper);
-            }
+            long expirationTime = System.currentTimeMillis() + ttlMs;
+            super.put(key, new TTLValueWrapper(value, expirationTime));
         }
 
         @Override
         public ValueWrapper get(Object key) {
             ValueWrapper wrapper = super.get(key);
-            
             if (wrapper != null && wrapper.get() instanceof TTLValueWrapper) {
                 TTLValueWrapper ttlWrapper = (TTLValueWrapper) wrapper.get();
-                
                 if (System.currentTimeMillis() > ttlWrapper.getExpirationTime()) {
-                    // Entry has expired, remove it and return null
                     evict(key);
                     return null;
                 }
-                
-                // Return the actual value wrapped in a new ValueWrapper
                 return () -> ttlWrapper.getValue();
             }
-            
             return wrapper;
         }
 
@@ -169,43 +155,21 @@ public class CacheConfig {
     /**
      * Wrapper class to store values with expiration time.
      */
+    @Getter
+    @AllArgsConstructor
     private static class TTLValueWrapper {
         private final Object value;
         private final long expirationTime;
-
-        public TTLValueWrapper(Object value, long expirationTime) {
-            this.value = value;
-            this.expirationTime = expirationTime;
-        }
-
-        public Object getValue() {
-            return value;
-        }
-
-        public long getExpirationTime() {
-            return expirationTime;
-        }
     }
 
     /**
      * Simple cache statistics holder.
      */
+    @Getter
+    @AllArgsConstructor
     public static class CacheStats {
         private final int size;
         private final long expiredCount;
-
-        public CacheStats(int size, long expiredCount) {
-            this.size = size;
-            this.expiredCount = expiredCount;
-        }
-
-        public int getSize() {
-            return size;
-        }
-
-        public long getExpiredCount() {
-            return expiredCount;
-        }
 
         @Override
         public String toString() {

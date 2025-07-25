@@ -10,6 +10,7 @@ import com.cryptoagents.service.CryptoDataService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.CacheEvict;
@@ -50,7 +51,7 @@ public class CoinGeckoDataService implements CryptoDataService {
     private static final long MAPPING_CACHE_DURATION_HOURS = 24;
 
     @Override
-    @Cacheable(value = CacheConfig.CRYPTO_PRICE_CACHE, key = "#ticker.toLowerCase()", unless = "#result.isEmpty()")
+    @Cacheable(value = CacheConfig.PRICE_CACHE, key = "#ticker.toLowerCase()", unless = "#result.isEmpty()")
     public Optional<BigDecimal> getCurrentPrice(String ticker) {
         try {
             validateTicker(ticker);
@@ -69,7 +70,7 @@ public class CoinGeckoDataService implements CryptoDataService {
 
             String url = "/simple/price?ids={coinId}&vs_currencies=usd";
             
-            ResponseEntity<String> response = restClient.get()
+            ResponseEntity<String> response = coinGeckoRestClient.get()
                     .uri(url, coinId)
                     .retrieve()
                     .toEntity(String.class);
@@ -117,7 +118,7 @@ public class CoinGeckoDataService implements CryptoDataService {
     }
 
     @Override
-    @Cacheable(value = CacheConfig.CRYPTO_HISTORICAL_DATA_CACHE, key = "#ticker.toLowerCase() + '_' + #period.name()", unless = "#result.isEmpty()")
+    @Cacheable(value = CacheConfig.HISTORICAL_CACHE, key = "#ticker.toLowerCase() + '_' + #period.name()", unless = "#result.isEmpty()")
     public Optional<HistoricalData> getHistoricalData(String ticker, TimePeriod period) {
         try {
             validateTicker(ticker);
@@ -137,7 +138,7 @@ public class CoinGeckoDataService implements CryptoDataService {
 
             String url = "/coins/{coinId}/market_chart?vs_currency=usd&days={days}";
             
-            ResponseEntity<String> response = restClient.get()
+            ResponseEntity<String> response = coinGeckoRestClient.get()
                     .uri(url, coinId, period.getApiValue())
                     .retrieve()
                     .toEntity(String.class);
@@ -204,7 +205,7 @@ public class CoinGeckoDataService implements CryptoDataService {
     }
 
     @Override
-    @Cacheable(value = CacheConfig.CRYPTO_MARKET_DATA_CACHE, key = "#ticker.toLowerCase()", unless = "#result.isEmpty()")
+    @Cacheable(value = CacheConfig.MARKET_CACHE, key = "#ticker.toLowerCase()", unless = "#result.isEmpty()")
     public Optional<MarketData> getMarketData(String ticker) {
         try {
             validateTicker(ticker);
@@ -224,7 +225,7 @@ public class CoinGeckoDataService implements CryptoDataService {
             String url = "/coins/markets?vs_currency=usd&ids={coinId}&order=market_cap_desc" +
                         "&per_page=1&page=1&sparkline=false&price_change_percentage=24h,7d,30d";
             
-            ResponseEntity<String> response = restClient.get()
+            ResponseEntity<String> response = coinGeckoRestClient.get()
                     .uri(url, coinId)
                     .retrieve()
                     .toEntity(String.class);
@@ -274,7 +275,7 @@ public class CoinGeckoDataService implements CryptoDataService {
     }
 
     @Override
-    @Cacheable(value = CacheConfig.CRYPTO_INFO_CACHE, key = "#ticker.toLowerCase()", unless = "#result.isEmpty()")
+    @Cacheable(value = CacheConfig.API_RESPONSE_CACHE, key = "#ticker.toLowerCase()", unless = "#result.isEmpty()")
     public Optional<CryptoCurrency> getCryptoInfo(String ticker) {
         try {
             validateTicker(ticker);
@@ -294,7 +295,7 @@ public class CoinGeckoDataService implements CryptoDataService {
             String url = "/coins/{coinId}?localization=false&tickers=false&market_data=true" +
                         "&community_data=false&developer_data=false&sparkline=false";
             
-            ResponseEntity<String> response = restClient.get()
+            ResponseEntity<String> response = coinGeckoRestClient.get()
                     .uri(url, coinId)
                     .retrieve()
                     .toEntity(String.class);
@@ -359,7 +360,7 @@ public class CoinGeckoDataService implements CryptoDataService {
     }
 
     @Override
-    @Cacheable(value = CacheConfig.CRYPTO_SUPPORTED_LIST_CACHE, key = "'all'", unless = "#result.isEmpty()")
+    @Cacheable(value = CacheConfig.API_RESPONSE_CACHE, key = "'all'", unless = "#result.isEmpty()")
     public List<CryptoCurrency> getSupportedCryptocurrencies() {
         try {
             // Check circuit breaker
@@ -370,7 +371,7 @@ public class CoinGeckoDataService implements CryptoDataService {
             
             String url = "/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false";
             
-            ResponseEntity<String> response = restClient.get()
+            ResponseEntity<String> response = coinGeckoRestClient.get()
                     .uri(url)
                     .retrieve()
                     .toEntity(String.class);
@@ -416,7 +417,7 @@ public class CoinGeckoDataService implements CryptoDataService {
     }
 
     @Override
-    @Cacheable(value = CacheConfig.CRYPTO_SERVICE_STATUS_CACHE, key = "'status'")
+    @Cacheable(value = CacheConfig.API_RESPONSE_CACHE, key = "'status'")
     public boolean isServiceAvailable() {
         try {
             // Check circuit breaker state - if it's open, service is considered unavailable
@@ -426,7 +427,7 @@ public class CoinGeckoDataService implements CryptoDataService {
             }
             
             String url = "/ping";
-            ResponseEntity<String> response = restClient.get()
+            ResponseEntity<String> response = coinGeckoRestClient.get()
                     .uri(url)
                     .retrieve()
                     .toEntity(String.class);
@@ -536,7 +537,7 @@ public class CoinGeckoDataService implements CryptoDataService {
      * Evicts all cached price data.
      * Useful when market conditions change rapidly or for testing purposes.
      */
-    @CacheEvict(value = CacheConfig.CRYPTO_PRICE_CACHE, allEntries = true)
+    @CacheEvict(value = CacheConfig.PRICE_CACHE, allEntries = true)
     public void evictAllPriceCache() {
         log.info("Evicted all entries from price cache");
     }
@@ -546,7 +547,7 @@ public class CoinGeckoDataService implements CryptoDataService {
      * 
      * @param ticker The cryptocurrency ticker to evict from cache
      */
-    @CacheEvict(value = CacheConfig.CRYPTO_PRICE_CACHE, key = "#ticker.toLowerCase()")
+    @CacheEvict(value = CacheConfig.PRICE_CACHE, key = "#ticker.toLowerCase()")
     public void evictPriceCache(String ticker) {
         log.debug("Evicted price cache for ticker: {}", ticker);
     }
@@ -554,7 +555,7 @@ public class CoinGeckoDataService implements CryptoDataService {
     /**
      * Evicts all cached market data.
      */
-    @CacheEvict(value = CacheConfig.CRYPTO_MARKET_DATA_CACHE, allEntries = true)
+    @CacheEvict(value = CacheConfig.MARKET_CACHE, allEntries = true)
     public void evictAllMarketDataCache() {
         log.info("Evicted all entries from market data cache");
     }
@@ -564,7 +565,7 @@ public class CoinGeckoDataService implements CryptoDataService {
      * 
      * @param ticker The cryptocurrency ticker to evict from cache
      */
-    @CacheEvict(value = CacheConfig.CRYPTO_MARKET_DATA_CACHE, key = "#ticker.toLowerCase()")
+    @CacheEvict(value = CacheConfig.MARKET_CACHE, key = "#ticker.toLowerCase()")
     public void evictMarketDataCache(String ticker) {
         log.debug("Evicted market data cache for ticker: {}", ticker);
     }
@@ -572,7 +573,7 @@ public class CoinGeckoDataService implements CryptoDataService {
     /**
      * Evicts all cached historical data.
      */
-    @CacheEvict(value = CacheConfig.CRYPTO_HISTORICAL_DATA_CACHE, allEntries = true)
+    @CacheEvict(value = CacheConfig.HISTORICAL_CACHE, allEntries = true)
     public void evictAllHistoricalDataCache() {
         log.info("Evicted all entries from historical data cache");
     }
@@ -583,7 +584,7 @@ public class CoinGeckoDataService implements CryptoDataService {
      * @param ticker The cryptocurrency ticker
      * @param period The time period
      */
-    @CacheEvict(value = CacheConfig.CRYPTO_HISTORICAL_DATA_CACHE, key = "#ticker.toLowerCase() + '_' + #period.name()")
+    @CacheEvict(value = CacheConfig.HISTORICAL_CACHE, key = "#ticker.toLowerCase() + '_' + #period.name()")
     public void evictHistoricalDataCache(String ticker, TimePeriod period) {
         log.debug("Evicted historical data cache for ticker: {} (period: {})", ticker, period);
     }
@@ -592,14 +593,13 @@ public class CoinGeckoDataService implements CryptoDataService {
      * Evicts all caches. Use with caution as this will force all subsequent
      * requests to hit the external API until caches are repopulated.
      */
-    @CacheEvict(value = {
-        CacheConfig.CRYPTO_PRICE_CACHE,
-        CacheConfig.CRYPTO_MARKET_DATA_CACHE,
-        CacheConfig.CRYPTO_HISTORICAL_DATA_CACHE,
-        CacheConfig.CRYPTO_INFO_CACHE,
-        CacheConfig.CRYPTO_SUPPORTED_LIST_CACHE,
-        CacheConfig.CRYPTO_SERVICE_STATUS_CACHE
-    }, allEntries = true)
+            @CacheEvict(value = {
+            CacheConfig.PRICE_CACHE,
+            CacheConfig.MARKET_CACHE,
+            CacheConfig.HISTORICAL_CACHE,
+            CacheConfig.ANALYSIS_CACHE,
+            CacheConfig.API_RESPONSE_CACHE
+        }, allEntries = true)
     public void evictAllCaches() {
         log.warn("Evicted ALL caches - all subsequent requests will hit the external API");
     }

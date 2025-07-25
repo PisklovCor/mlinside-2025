@@ -1,6 +1,8 @@
 package com.cryptoagents.model;
 
 import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
@@ -8,6 +10,8 @@ import java.time.LocalDateTime;
  * 
  * This class aggregates results from all agents into a single report.
  */
+@Data
+@NoArgsConstructor
 @Entity
 @Table(name = "analysis_reports")
 public class AnalysisReport {
@@ -26,10 +30,6 @@ public class AnalysisReport {
     private String analysisResult;
     
     // Constructors
-    public AnalysisReport() {
-        this.createdAt = LocalDateTime.now();
-    }
-    
     public AnalysisReport(String symbol) {
         this.symbol = symbol;
         this.createdAt = LocalDateTime.now();
@@ -39,39 +39,6 @@ public class AnalysisReport {
         this.symbol = symbol;
         this.analysisResult = analysisResult;
         this.createdAt = LocalDateTime.now();
-    }
-    
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-    
-    public void setId(Long id) {
-        this.id = id;
-    }
-    
-    public String getSymbol() {
-        return symbol;
-    }
-    
-    public void setSymbol(String symbol) {
-        this.symbol = symbol;
-    }
-    
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-    
-    public String getAnalysisResult() {
-        return analysisResult;
-    }
-    
-    public void setAnalysisResult(String analysisResult) {
-        this.analysisResult = analysisResult;
     }
     
     // toString method for debugging
