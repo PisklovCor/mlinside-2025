@@ -1,10 +1,9 @@
 package com.cryptoagents.config;
 
+import com.cryptoagents.BaseSpringBootTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -16,9 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Integration tests for database configuration.
  * Tests database connectivity and configuration validation.
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class DatabaseConfigTest {
+class DatabaseConfigTest extends BaseSpringBootTest {
 
     @Autowired
     private DataSource dataSource;
@@ -28,57 +25,63 @@ class DatabaseConfigTest {
 
     @Test
     void testDatabaseConnectionIsValid() throws SQLException {
+        logTestStart("testDatabaseConnectionIsValid");
         // Test that we can obtain a valid connection
         try (Connection connection = dataSource.getConnection()) {
             assertNotNull(connection, "Connection should not be null");
             assertTrue(connection.isValid(5), "Connection should be valid");
             assertFalse(connection.isClosed(), "Connection should not be closed");
         }
+        logTestEnd("testDatabaseConnectionIsValid");
     }
 
     @Test
     void testJdbcTemplateCanExecuteQueries() {
+        logTestStart("testJdbcTemplateCanExecuteQueries");
         // Test basic query execution
         String result = jdbcTemplate.queryForObject("SELECT 'Database connection test'", String.class);
         assertEquals("Database connection test", result);
+        logTestEnd("testJdbcTemplateCanExecuteQueries");
     }
 
     @Test
-    void testDatabaseVersionQuery() {
-        // Test that we can query database version (works with both H2 and PostgreSQL)
-        try {
-            // Try PostgreSQL version query first
-            String version = jdbcTemplate.queryForObject("SELECT version()", String.class);
-            assertNotNull(version, "Database version should not be null");
-            assertFalse(version.trim().isEmpty(), "Database version should not be empty");
-        } catch (Exception e) {
-            // For H2 database, use alternative query
-            String version = jdbcTemplate.queryForObject("SELECT H2VERSION()", String.class);
-            assertNotNull(version, "H2 version should not be null");
-            assertFalse(version.trim().isEmpty(), "H2 version should not be empty");
-        }
-    }
-
-    @Test
-    void testDataSourceConfiguration() {
-        // Test basic DataSource properties
-        assertNotNull(dataSource, "DataSource should be configured");
-        
-        // Test that we can get connection metadata
+    void testDatabaseMetadata() throws SQLException {
+        logTestStart("testDatabaseMetadata");
         try (Connection connection = dataSource.getConnection()) {
-            String url = connection.getMetaData().getURL();
-            assertNotNull(url, "Connection URL should not be null");
+            var metadata = connection.getMetaData();
             
-            String driverName = connection.getMetaData().getDriverName();
-            assertNotNull(driverName, "Driver name should not be null");
+            assertNotNull(metadata, "Database metadata should be available");
+            assertNotNull(metadata.getDatabaseProductName(), "Database product name should be available");
+            assertNotNull(metadata.getDatabaseProductVersion(), "Database version should be available");
             
-        } catch (SQLException e) {
-            fail("Should be able to get connection metadata: " + e.getMessage());
+            // For H2 test database
+            assertTrue(metadata.getDatabaseProductName().contains("H2"), 
+                "Should be using H2 database for tests");
         }
+        logTestEnd("testDatabaseMetadata");
+    }
+
+    @Test
+    void testConnectionPoolConfiguration() throws SQLException {
+        logTestStart("testConnectionPoolConfiguration");
+        // Test that we can create multiple connections (pool functionality)
+        try (Connection conn1 = dataSource.getConnection();
+             Connection conn2 = dataSource.getConnection()) {
+            
+            assertNotNull(conn1, "First connection should be valid");
+            assertNotNull(conn2, "Second connection should be valid");
+            assertTrue(conn1.isValid(5), "First connection should be valid");
+            assertTrue(conn2.isValid(5), "Second connection should be valid");
+            
+            // Connections should be different instances
+            assertNotSame(conn1, conn2, "Connections should be different instances");
+        }
+        logTestEnd("testConnectionPoolConfiguration");
     }
 
     @Test
     void testDatabasePropertiesBean() {
+        logTestStart("testDatabasePropertiesBean");
         // Test that DatabaseProperties can be autowired (configuration validation)
         DatabaseConfig.DatabaseProperties properties = new DatabaseConfig.DatabaseProperties();
         
@@ -98,5 +101,7 @@ class DatabaseConfigTest {
         assertEquals(3, properties.getMinConnections());
         assertEquals(25000, properties.getConnectionTimeout());
         assertTrue(properties.isEnableMetrics());
+        logTestEnd("testDatabasePropertiesBean");
     }
+
 } 

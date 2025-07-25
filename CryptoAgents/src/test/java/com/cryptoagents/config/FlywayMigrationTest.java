@@ -1,10 +1,9 @@
 package com.cryptoagents.config;
 
+import com.cryptoagents.BaseSpringBootTest;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -18,9 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * This test ensures that database schema migrations are working correctly
  * and that the database structure matches the expected schema.
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class FlywayMigrationTest {
+class FlywayMigrationTest extends BaseSpringBootTest {
 
     @Autowired
     private DataSource dataSource;
@@ -42,12 +39,15 @@ class FlywayMigrationTest {
 
     @Test
     void testFlywayConfiguration() {
+        logTestStart("testFlywayConfiguration");
         assertNotNull(flyway, "Flyway should be properly configured");
         assertNotNull(dataSource, "DataSource should be available");
+        logTestEnd("testFlywayConfiguration");
     }
 
     @Test
     void testMigrationInfo() {
+        logTestStart("testMigrationInfo");
         var migrationInfo = flyway.info();
         assertNotNull(migrationInfo, "Migration info should be available");
         
@@ -60,10 +60,12 @@ class FlywayMigrationTest {
         if (current != null) {
             assertNotNull(current.getVersion(), "Migration should have a version");
         }
+        logTestEnd("testMigrationInfo");
     }
 
     @Test
     void testMigrationExecution() {
+        logTestStart("testMigrationExecution");
         // Run migrations (clean not needed as test database is fresh)
         var migrationResult = flyway.migrate();
         assertTrue(migrationResult.migrationsExecuted >= 0, 
@@ -73,50 +75,60 @@ class FlywayMigrationTest {
         var migrationInfo = flyway.info();
         assertEquals(0, migrationInfo.pending().length, 
                 "No pending migrations should remain");
+        logTestEnd("testMigrationExecution");
     }
 
     @Test
     void testDatabaseSchemaAfterMigration() {
+        logTestStart("testDatabaseSchemaAfterMigration");
         // Verify main tables exist
         assertTableExists("analysis_results");
         assertTableExists("analyst_reports");
         assertTableExists("risk_manager_reports");
         assertTableExists("trader_reports");
         assertTableExists("analysis_reports");
+        logTestEnd("testDatabaseSchemaAfterMigration");
     }
 
     @Test
     void testAnalysisResultsTableStructure() {
+        logTestStart("testAnalysisResultsTableStructure");
         // Test primary key and discriminator column
         assertColumnExists("analysis_results", "id");
         assertColumnExists("analysis_results", "agent_type");
         assertColumnExists("analysis_results", "ticker");
         assertColumnExists("analysis_results", "analysis_time");
         assertColumnExists("analysis_results", "status");
+        logTestEnd("testAnalysisResultsTableStructure");
     }
 
     @Test
     void testAnalystReportsTableStructure() {
+        logTestStart("testAnalystReportsTableStructure");
         // Test specific columns for analyst reports
         assertColumnExists("analyst_reports", "id");
         assertColumnExists("analyst_reports", "market_trend");
         assertColumnExists("analyst_reports", "current_price");
         assertColumnExists("analyst_reports", "price_target");
         assertColumnExists("analyst_reports", "signal_strength");
+        logTestEnd("testAnalystReportsTableStructure");
     }
 
     @Test
     void testRiskManagerReportsTableStructure() {
+        logTestStart("testRiskManagerReportsTableStructure");
         // Test specific columns for risk manager reports
         assertColumnExists("risk_manager_reports", "id");
         assertColumnExists("risk_manager_reports", "risk_score");
         assertColumnExists("risk_manager_reports", "risk_level");
         assertColumnExists("risk_manager_reports", "value_at_risk");
         assertColumnExists("risk_manager_reports", "recommended_position_size");
+        logTestEnd("testRiskManagerReportsTableStructure");
     }
 
     @Test
     void testTraderReportsTableStructure() {
+        logTestStart("testTraderReportsTableStructure");
         // Test specific columns for trader reports
         assertColumnExists("trader_reports", "id");
         assertColumnExists("trader_reports", "action_recommendation");
@@ -124,10 +136,12 @@ class FlywayMigrationTest {
         assertColumnExists("trader_reports", "exit_price");
         assertColumnExists("trader_reports", "stop_loss");
         assertColumnExists("trader_reports", "take_profit");
+        logTestEnd("testTraderReportsTableStructure");
     }
 
     @Test
     void testForeignKeyConstraints() {
+        logTestStart("testForeignKeyConstraints");
         // Test that foreign key constraints exist for inheritance
         String query = """
             SELECT COUNT(*) FROM information_schema.table_constraints 
@@ -137,10 +151,12 @@ class FlywayMigrationTest {
         
         Integer count = jdbcTemplate.queryForObject(query, Integer.class);
         assertEquals(3, count, "Should have foreign key constraints for all specialized tables");
+        logTestEnd("testForeignKeyConstraints");
     }
 
     @Test
     void testIndexCreation() {
+        logTestStart("testIndexCreation");
         // Test that indexes exist (H2 compatible query)
         String query = """
             SELECT COUNT(*) FROM information_schema.indexes
@@ -149,10 +165,12 @@ class FlywayMigrationTest {
         
         Integer count = jdbcTemplate.queryForObject(query, Integer.class);
         assertTrue(count >= 3, "Should have at least primary key indexes");
+        logTestEnd("testIndexCreation");
     }
 
     @Test
     void testMigrationIdempotency() {
+        logTestStart("testMigrationIdempotency");
         // First run migration to ensure schema is up to date
         var firstMigrationResult = flyway.migrate();
         
@@ -165,6 +183,7 @@ class FlywayMigrationTest {
         var migrationInfo = flyway.info();
         assertEquals(0, migrationInfo.pending().length, 
                 "No pending migrations should remain after idempotent run");
+        logTestEnd("testMigrationIdempotency");
     }
 
     private void assertTableExists(String tableName) {
@@ -180,11 +199,13 @@ class FlywayMigrationTest {
     private void assertColumnExists(String tableName, String columnName) {
         String query = """
             SELECT COUNT(*) FROM information_schema.columns 
-            WHERE table_schema = 'PUBLIC' AND UPPER(table_name) = UPPER(?) AND UPPER(column_name) = UPPER(?)
+            WHERE table_schema = 'PUBLIC' 
+            AND UPPER(table_name) = UPPER(?) 
+            AND UPPER(column_name) = UPPER(?)
             """;
         
         Integer count = jdbcTemplate.queryForObject(query, Integer.class, tableName, columnName);
-        assertEquals(1, count, 
-                "Column '" + columnName + "' should exist in table '" + tableName + "'");
+        assertEquals(1, count, "Column '" + columnName + "' should exist in table '" + tableName + "'");
     }
+
 } 
