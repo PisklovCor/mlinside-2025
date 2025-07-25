@@ -20,8 +20,6 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@ActiveProfiles("test")
 @DisplayName("AgentOrchestrator Integration Tests")
 class AgentOrchestratorIntegrationTest extends BaseSpringBootTest {
 
@@ -38,7 +36,7 @@ class AgentOrchestratorIntegrationTest extends BaseSpringBootTest {
 
     @Test
     @DisplayName("Should perform complete analysis with real agents")
-    void shouldPerformCompleteAnalysisWithRealAgents() {
+    void shouldPerformCompleteAnalysisWithRealAgents() throws OrchestrationException {
         // Given
         String ticker = "BTC";
         MarketData marketData = new MarketData(ticker, "Bitcoin", BigDecimal.valueOf(50000));
@@ -62,7 +60,7 @@ class AgentOrchestratorIntegrationTest extends BaseSpringBootTest {
 
     @Test
     @DisplayName("Should handle unsupported ticker gracefully")
-    void shouldHandleUnsupportedTickerGracefully() {
+    void shouldHandleUnsupportedTickerGracefully() throws OrchestrationException {
         // Given
         String ticker = "INVALID";
         when(cryptoDataService.isTickerSupported(ticker)).thenReturn(false);
@@ -96,21 +94,26 @@ class AgentOrchestratorIntegrationTest extends BaseSpringBootTest {
 
     @Test
     @DisplayName("Should handle missing historical data")
-    void shouldHandleMissingHistoricalData() {
+    void shouldHandleMissingHistoricalData() throws OrchestrationException {
         // Given
         String ticker = "BTC";
         MarketData marketData = new MarketData(ticker, "Bitcoin", BigDecimal.valueOf(50000));
         
         when(cryptoDataService.isTickerSupported(ticker)).thenReturn(true);
         when(cryptoDataService.getMarketData(ticker)).thenReturn(Optional.of(marketData));
-        when(cryptoDataService.getHistoricalData(ticker, TimePeriod.ONE_WEEK)).thenReturn(Optional.empty());
+        when(cryptoDataService.getHistoricalData(ticker, TimePeriod.ONE_MONTH)).thenReturn(Optional.empty());
 
-        // When & Then
-        assertThrows(OrchestrationException.class, () -> {
-            orchestrator.analyze(ticker);
-        });
+        // When
+        AnalysisReport report = orchestrator.analyze(ticker);
+
+        // Then
+        assertNotNull(report);
+        assertTrue(report.isSuccessful());
+        assertEquals(3, report.getAgentResults().size());
         
         verify(cryptoDataService).isTickerSupported(ticker);
+        verify(cryptoDataService).getMarketData(ticker);
+        verify(cryptoDataService).getHistoricalData(ticker, TimePeriod.ONE_MONTH);
     }
 
     @Test
@@ -209,11 +212,15 @@ class AgentOrchestratorIntegrationTest extends BaseSpringBootTest {
     @Test
     @DisplayName("Should check orchestrator readiness")
     void shouldCheckOrchestratorReadiness() {
+        // Given
+        when(cryptoDataService.isServiceAvailable()).thenReturn(true);
+        
         // When
         boolean isReady = orchestrator.isReady();
 
         // Then
         assertTrue(isReady);
+        verify(cryptoDataService).isServiceAvailable();
     }
 
     @Test

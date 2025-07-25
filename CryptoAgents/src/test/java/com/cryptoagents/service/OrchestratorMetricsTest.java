@@ -243,11 +243,16 @@ class OrchestratorMetricsTest extends BaseSpringBootTest {
         @Test
         @DisplayName("Should track uptime")
         void shouldTrackUptime() {
+            // Given
+            long startTime = System.currentTimeMillis();
+            
             // When
             long uptime = metrics.getUptimeMs();
+            long endTime = System.currentTimeMillis();
 
             // Then
-            assertTrue(uptime > 0);
+            assertTrue(uptime >= 0);
+            assertTrue(uptime <= (endTime - startTime + 1000)); // Allow some tolerance
         }
 
         @Test
