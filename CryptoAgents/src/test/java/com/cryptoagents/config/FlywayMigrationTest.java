@@ -4,7 +4,7 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * and that the database structure matches the expected schema.
  */
 @SpringBootTest
-@TestPropertySource(locations = "classpath:application-test.properties")
+@ActiveProfiles("test")
 class FlywayMigrationTest {
 
     @Autowired
@@ -35,6 +35,8 @@ class FlywayMigrationTest {
         flyway = Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
+                .baselineOnMigrate(true)  // Allow Flyway to baseline existing schema
+                .baselineVersion("0")     // Set baseline version
                 .load();
     }
 
@@ -151,10 +153,18 @@ class FlywayMigrationTest {
 
     @Test
     void testMigrationIdempotency() {
-        // Run migration again - should be idempotent
-        var migrationResult = flyway.migrate();
-        assertEquals(0, migrationResult.migrationsExecuted, 
+        // First run migration to ensure schema is up to date
+        var firstMigrationResult = flyway.migrate();
+        
+        // Run migration again - should be idempotent (no new migrations executed)
+        var secondMigrationResult = flyway.migrate();
+        assertEquals(0, secondMigrationResult.migrationsExecuted, 
                 "No new migrations should be executed on second run");
+                
+        // Verify migration state is consistent
+        var migrationInfo = flyway.info();
+        assertEquals(0, migrationInfo.pending().length, 
+                "No pending migrations should remain after idempotent run");
     }
 
     private void assertTableExists(String tableName) {
