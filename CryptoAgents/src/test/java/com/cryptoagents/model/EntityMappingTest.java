@@ -16,8 +16,8 @@
 //import static org.junit.jupiter.api.Assertions.*;
 //
 ///**
-// * Tests for entity mappings and JPA functionality.
-// * Uses @DataJpaTest for optimized testing with in-memory database.
+// * Тесты для маппинга сущностей и функциональности JPA.
+// * Использует @DataJpaTest для оптимизированного тестирования с in-memory базой данных.
 // */
 //@DataJpaTest
 //@ActiveProfiles("test")

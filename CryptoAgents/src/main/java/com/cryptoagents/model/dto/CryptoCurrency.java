@@ -10,10 +10,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Data Transfer Object representing basic cryptocurrency information.
+ * Data Transfer Object, представляющий базовую информацию о криптовалюте.
  * 
- * This class is used to transfer cryptocurrency data between layers
- * and can be serialized/deserialized from JSON API responses.
+ * Этот класс используется для передачи данных криптовалюты между слоями
+ * и может быть сериализован/десериализован из JSON ответов API.
  */
 @Data
 @NoArgsConstructor
@@ -53,7 +53,7 @@ public class CryptoCurrency {
 
     private LocalDateTime retrievedAt = LocalDateTime.now();
 
-    // Constructor with required fields
+    // Конструктор с обязательными полями
     public CryptoCurrency(String id, String symbol, String name, BigDecimal currentPrice) {
         this.id = id;
         this.symbol = symbol;
@@ -62,13 +62,13 @@ public class CryptoCurrency {
         this.retrievedAt = LocalDateTime.now();
     }
 
-    // Utility methods
+    // Утилитарные методы
 
     /**
-     * Returns the ticker symbol in uppercase.
+     * Возвращает тикер в верхнем регистре.
      * 
-     * @return Uppercase ticker symbol
-     * @throws NullPointerException if symbol is null
+     * @return Тикер в верхнем регистре
+     * @throws NullPointerException если symbol равен null
      */
     public String getTickerUpperCase() {
         if (symbol == null) {
@@ -78,22 +78,22 @@ public class CryptoCurrency {
     }
 
     /**
-     * Checks if this cryptocurrency has valid price data.
+     * Проверяет, имеет ли эта криптовалюта валидные данные о цене.
      * 
-     * @return true if current price is not null and positive
+     * @return true если текущая цена не null и положительная
      */
     public boolean hasValidPrice() {
         return currentPrice != null && currentPrice.compareTo(BigDecimal.ZERO) > 0;
     }
 
     /**
-     * Checks if the price has increased in the last 24 hours.
-     * Uses priceChange24h if priceChangePercentage24h is not available.
+     * Проверяет, увеличилась ли цена за последние 24 часа.
+     * Использует priceChange24h, если priceChangePercentage24h недоступен.
      * 
-     * @return true if price change is positive
+     * @return true если изменение цены положительное
      */
     public boolean isPriceIncreasing() {
-        // First try percentage change, fallback to absolute change
+        // Сначала пробуем процентное изменение, затем абсолютное изменение
         if (priceChangePercentage24h != null) {
             return priceChangePercentage24h.compareTo(BigDecimal.ZERO) > 0;
         }

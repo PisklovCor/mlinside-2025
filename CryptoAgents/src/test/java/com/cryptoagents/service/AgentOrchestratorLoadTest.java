@@ -280,11 +280,11 @@ class AgentOrchestratorLoadTest extends BaseSpringBootTest {
         @Test
         @DisplayName("Should not leak memory under load")
         void shouldNotLeakMemoryUnderLoad() throws Exception {
-            // Given
+            // Дано
             List<String> tickers = generateTickers(50);
             setupMockDataForTickers(tickers);
 
-            // When
+            // Когда
             Runtime runtime = Runtime.getRuntime();
             long initialMemory = runtime.totalMemory() - runtime.freeMemory();
             
@@ -293,16 +293,16 @@ class AgentOrchestratorLoadTest extends BaseSpringBootTest {
                 assertNotNull(results);
                 assertEquals(50, results.size());
                 
-                // Force garbage collection
+                // Принудительная сборка мусора
                 System.gc();
                 Thread.sleep(100);
             }
             
             long finalMemory = runtime.totalMemory() - runtime.freeMemory();
 
-            // Then
-            // Memory usage should not increase significantly
-            assertTrue(finalMemory <= initialMemory * 1.2); // Should not increase more than 20%
+            // Тогда
+            // Использование памяти не должно значительно увеличиваться
+            assertTrue(finalMemory <= initialMemory * 1.2); // Не должно увеличиваться более чем на 20%
         }
 
         @Test

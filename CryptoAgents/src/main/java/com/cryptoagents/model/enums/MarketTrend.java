@@ -1,26 +1,22 @@
 package com.cryptoagents.model.enums;
 
 /**
- * Enum representing different market trends
+ * Перечисление, представляющее различные рыночные тренды
  */
 public enum MarketTrend {
-    BULLISH("Bullish"),
-    BEARISH("Bearish"),
-    SIDEWAYS("Sideways"),
-    UNKNOWN("Unknown");
-    
-    private final String displayName;
-    
-    MarketTrend(String displayName) {
-        this.displayName = displayName;
+    BULLISH("Бычий"),
+    BEARISH("Медвежий"),
+    SIDEWAYS("Боковой"),
+    VOLATILE("Волатильный"),
+    UNKNOWN("Неизвестно");
+
+    private final String description;
+
+    MarketTrend(String description) {
+        this.description = description;
     }
-    
-    public String getDisplayName() {
-        return displayName;
-    }
-    
-    @Override
-    public String toString() {
-        return displayName;
+
+    public String getDescription() {
+        return description;
     }
 } 

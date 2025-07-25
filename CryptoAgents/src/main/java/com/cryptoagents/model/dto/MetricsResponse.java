@@ -1,46 +1,58 @@
 package com.cryptoagents.model.dto;
 
-import lombok.Builder;
 import lombok.Data;
-import lombok.extern.jackson.Jacksonized;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 
 import java.util.Map;
+import java.util.HashMap;
 
 /**
- * Response DTO for orchestrator performance metrics.
+ * DTO ответа для метрик производительности оркестратора.
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
-@Jacksonized
 public class MetricsResponse {
     
     /**
-     * Overall metrics
+     * Общие метрики
      */
-    private long totalRequests;
-    private long successfulAnalyses;
-    private long failedAnalyses;
-    private double successRate;
-    private double failureRate;
-    private double averageExecutionTime;
+    private Long totalRequests;
+    private Long successfulRequests;
+    private Long failedRequests;
+    private Double successRate;
+    private Double failureRate;
+    private Long averageExecutionTime;
+    private Long uptime;
     
     /**
-     * Agent-specific metrics
+     * Метрики по агентам
      */
-    private Map<String, AgentMetrics> agentMetrics;
+    @Builder.Default
+    private Map<String, AgentMetrics> agentMetrics = new HashMap<>();
     
     /**
-     * System metrics
+     * Системные метрики
      */
-    private long uptimeMs;
-    private String lastResetTime;
+    private Long memoryUsage;
+    private Long maxMemory;
+    private Integer activeThreads;
+    private Double cpuUsage;
     
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     @Builder
-    @Jacksonized
     public static class AgentMetrics {
-        private long executionCount;
-        private double failureRate;
-        private double averageExecutionTime;
+        private String agentName;
+        private Long executionCount;
+        private Long successCount;
+        private Long failureCount;
+        private Double successRate;
+        private Long averageExecutionTime;
+        private Long totalExecutionTime;
     }
 } 

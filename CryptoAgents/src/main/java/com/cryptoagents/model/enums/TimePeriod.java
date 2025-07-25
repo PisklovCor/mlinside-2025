@@ -1,46 +1,47 @@
 package com.cryptoagents.model.enums;
 
 /**
- * Enumeration representing different time periods for historical data retrieval.
+ * Перечисление, представляющее различные временные периоды для получения исторических данных.
  * 
- * This enum is used to specify the time range when requesting historical
- * cryptocurrency data from external APIs.
+ * Это перечисление используется для указания временного диапазона при запросе исторических
+ * данных криптовалют из внешних API.
  */
 public enum TimePeriod {
-    /**
-     * Data for the last 24 hours
-     */
-    ONE_DAY("1", "1 Day", 1),
     
     /**
-     * Data for the last 7 days
+     * Данные за последние 24 часа
      */
-    ONE_WEEK("7", "1 Week", 7),
+    ONE_DAY("1", "1 день", 1),
     
     /**
-     * Data for the last 30 days
+     * Данные за последние 7 дней
      */
-    ONE_MONTH("30", "1 Month", 30),
+    ONE_WEEK("7", "1 неделя", 7),
     
     /**
-     * Data for the last 3 months
+     * Данные за последние 30 дней
      */
-    THREE_MONTHS("90", "3 Months", 90),
+    ONE_MONTH("30", "1 месяц", 30),
     
     /**
-     * Data for the last 6 months
+     * Данные за последние 3 месяца
      */
-    SIX_MONTHS("180", "6 Months", 180),
+    THREE_MONTHS("90", "3 месяца", 90),
     
     /**
-     * Data for the last year
+     * Данные за последние 6 месяцев
      */
-    ONE_YEAR("365", "1 Year", 365),
+    SIX_MONTHS("180", "6 месяцев", 180),
     
     /**
-     * Maximum available historical data
+     * Данные за последний год
      */
-    MAX("max", "All Time", -1);
+    ONE_YEAR("365", "1 год", 365),
+    
+    /**
+     * Максимальные доступные исторические данные
+     */
+    MAX("max", "Максимум", -1);
 
     private final String apiValue;
     private final String displayName;
@@ -53,59 +54,52 @@ public enum TimePeriod {
     }
 
     /**
-     * Gets the API parameter value for this time period.
+     * Получает значение параметра API для этого временного периода.
      * 
-     * @return The string value used in API requests
+     * @return Строковое значение, используемое в запросах API
      */
     public String getApiValue() {
         return apiValue;
     }
 
     /**
-     * Gets the human-readable display name for this time period.
+     * Получает человекочитаемое отображаемое имя для этого временного периода.
      * 
-     * @return The display name
+     * @return Отображаемое имя
      */
     public String getDisplayName() {
         return displayName;
     }
 
     /**
-     * Gets the number of days represented by this time period.
+     * Получает количество дней, представленных этим временным периодом.
      * 
-     * @return The number of days (-1 for unlimited/max)
+     * @return Количество дней (-1 для неограниченного/максимального)
      */
     public int getDays() {
         return days;
     }
 
     /**
-     * Finds a TimePeriod by its API value.
-     * Supports case-insensitive matching and trims whitespace.
+     * Находит TimePeriod по его значению API.
+     * Поддерживает поиск без учета регистра и обрезку пробелов.
      * 
-     * @param apiValue The API value to search for
-     * @return The matching TimePeriod, or null if not found
+     * @param apiValue Значение API для поиска
+     * @return Соответствующий TimePeriod, или null если не найден
      */
     public static TimePeriod fromApiValue(String apiValue) {
         if (apiValue == null) {
             return null;
         }
         
-        String trimmedValue = apiValue.trim();
-        if (trimmedValue.isEmpty()) {
-            return null;
-        }
+        String normalizedValue = apiValue.trim().toLowerCase();
         
         for (TimePeriod period : values()) {
-            if (period.apiValue.equalsIgnoreCase(trimmedValue)) {
+            if (period.apiValue.equals(normalizedValue)) {
                 return period;
             }
         }
+        
         return null;
-    }
-
-    @Override
-    public String toString() {
-        return displayName;
     }
 } 

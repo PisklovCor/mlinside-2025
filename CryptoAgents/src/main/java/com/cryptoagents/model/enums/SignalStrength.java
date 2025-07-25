@@ -1,28 +1,22 @@
 package com.cryptoagents.model.enums;
 
 /**
- * Enum representing the strength of trading signals
+ * Перечисление, представляющее силу торговых сигналов
  */
 public enum SignalStrength {
-    STRONG_BUY("Strong Buy"),
-    BUY("Buy"),
-    NEUTRAL("Neutral"),
-    SELL("Sell"),
-    STRONG_SELL("Strong Sell"),
-    UNKNOWN("Unknown");
-    
-    private final String displayName;
-    
-    SignalStrength(String displayName) {
-        this.displayName = displayName;
+    VERY_WEAK("Очень слабый"),
+    WEAK("Слабый"),
+    MODERATE("Умеренный"),
+    STRONG("Сильный"),
+    VERY_STRONG("Очень сильный");
+
+    private final String description;
+
+    SignalStrength(String description) {
+        this.description = description;
     }
-    
-    public String getDisplayName() {
-        return displayName;
-    }
-    
-    @Override
-    public String toString() {
-        return displayName;
+
+    public String getDescription() {
+        return description;
     }
 } 

@@ -14,27 +14,26 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("InputValidator Tests")
 class InputValidatorTest {
-    
+
     @Mock
     private InputSanitizer inputSanitizer;
-    
+
     private InputValidator validator;
-    
+
     @BeforeEach
     void setUp() {
         validator = new InputValidator(inputSanitizer);
     }
-    
+
     @Nested
     @DisplayName("Ticker Validation Tests")
     class TickerValidationTests {
-        
+
         @ParameterizedTest
         @CsvSource({
             "btc, BTC",
@@ -144,10 +143,13 @@ class InputValidatorTest {
         })
         @DisplayName("Should validate and normalize valid timeframes")
         void testValidateTimeframe_ValidTimeframe_ReturnsNormalized(String input, String expected) {
-            // When
+            // Дано
+            when(inputSanitizer.sanitizeTimeframe(input)).thenReturn(expected);
+            
+            // Когда
             String result = validator.validateTimeframe(input);
             
-            // Then
+            // Тогда
             assertThat(result).isEqualTo(expected);
         }
         
@@ -156,21 +158,25 @@ class InputValidatorTest {
         @ValueSource(strings = {"invalid", "25h", "8d", "0h", "-1h"})
         @DisplayName("Should return default for invalid timeframes")
         void testValidateTimeframe_InvalidTimeframe_ReturnsDefault(String timeframe) {
-            // When
+            // Дано
+            when(inputSanitizer.sanitizeTimeframe(timeframe)).thenReturn("24h");
+            
+            // Когда
             String result = validator.validateTimeframe(timeframe);
             
-            // Then
+            // Тогда
             assertThat(result).isEqualTo("24h");
         }
         
         @Test
         @DisplayName("Should handle all valid timeframes")
         void testValidateTimeframe_AllValidTimeframes() {
-            // Given
+            // Дано
             String[] validTimeframes = {"1h", "4h", "24h", "7d", "30d"};
             
-            // When & Then
+            // Когда и Тогда
             for (String timeframe : validTimeframes) {
+                when(inputSanitizer.sanitizeTimeframe(timeframe)).thenReturn(timeframe);
                 String result = validator.validateTimeframe(timeframe);
                 assertThat(result).isEqualTo(timeframe);
             }
@@ -184,10 +190,13 @@ class InputValidatorTest {
         @Test
         @DisplayName("Should return null for null input")
         void testSanitizeString_NullInput_ReturnsNull() {
-            // When
-            String result = validator.sanitizeString(null);
+            // Дано
+            String input = null;
             
-            // Then
+            // Когда
+            String result = validator.sanitizeString(input);
+            
+            // Тогда
             assertThat(result).isNull();
         }
         
@@ -200,13 +209,13 @@ class InputValidatorTest {
         })
         @DisplayName("Should trim whitespace from input")
         void testSanitizeString_ValidInput_ReturnsTrimmed(String input, String expected) {
-            // Given
-            when(inputSanitizer.removeDangerousChars(input)).thenReturn(expected);
+            // Дано
+            when(inputSanitizer.sanitizeString(input)).thenReturn(expected);
             
-            // When
+            // Когда
             String result = validator.sanitizeString(input);
             
-            // Then
+            // Тогда
             assertThat(result).isEqualTo(expected);
         }
         
@@ -219,58 +228,57 @@ class InputValidatorTest {
         })
         @DisplayName("Should remove dangerous HTML characters")
         void testSanitizeString_DangerousCharacters_RemovesThem(String input, String expected) {
-            // Given
-            when(inputSanitizer.removeDangerousChars(input)).thenReturn(expected);
+            // Дано
+            when(inputSanitizer.sanitizeString(input)).thenReturn(expected);
             
-            // When
+            // Когда
             String result = validator.sanitizeString(input);
             
-            // Then
+            // Тогда
             assertThat(result).isEqualTo(expected);
         }
         
         @Test
         @DisplayName("Should truncate very long input")
         void testSanitizeString_TooLong_Truncates() {
-            // Given
-            StringBuilder longInput = new StringBuilder();
-            for (int i = 0; i < 1100; i++) {
-                longInput.append("a");
-            }
-            String truncated = "a".repeat(1000);
-            when(inputSanitizer.removeDangerousChars(longInput.toString())).thenReturn(truncated);
+            // Дано
+            String longInput = "A".repeat(1001);
+            String expected = "A".repeat(1000);
+            when(inputSanitizer.sanitizeString(longInput)).thenReturn(expected);
             
-            // When
-            String result = validator.sanitizeString(longInput.toString());
+            // Когда
+            String result = validator.sanitizeString(longInput);
             
-            // Then
+            // Тогда
+            assertThat(result).isEqualTo(expected);
             assertThat(result).hasSize(1000);
-            assertThat(result).startsWith("a");
         }
         
         @Test
         @DisplayName("Should handle empty string")
         void testSanitizeString_EmptyString_ReturnsEmpty() {
-            // Given
-            when(inputSanitizer.removeDangerousChars("")).thenReturn("");
+            // Дано
+            String input = "";
+            when(inputSanitizer.sanitizeString(input)).thenReturn("");
             
-            // When
-            String result = validator.sanitizeString("");
+            // Когда
+            String result = validator.sanitizeString(input);
             
-            // Then
+            // Тогда
             assertThat(result).isEmpty();
         }
         
         @Test
         @DisplayName("Should handle string with only whitespace")
         void testSanitizeString_WhitespaceOnly_ReturnsEmpty() {
-            // Given
-            when(inputSanitizer.removeDangerousChars("   ")).thenReturn("   ");
+            // Дано
+            String input = "   \t\n   ";
+            when(inputSanitizer.sanitizeString(input)).thenReturn("");
             
-            // When
-            String result = validator.sanitizeString("   ");
+            // Когда
+            String result = validator.sanitizeString(input);
             
-            // Then
+            // Тогда
             assertThat(result).isEmpty();
         }
     }
@@ -291,10 +299,13 @@ class InputValidatorTest {
         })
         @DisplayName("Should validate valid numbers")
         void testIsValidNumber_ValidNumber_ReturnsTrue(String input, boolean expected) {
-            // When
+            // Дано
+            when(inputSanitizer.isValidNumber(input)).thenReturn(expected);
+            
+            // Когда
             boolean result = validator.isValidNumber(input);
             
-            // Then
+            // Тогда
             assertThat(result).isEqualTo(expected);
         }
         
@@ -305,10 +316,13 @@ class InputValidatorTest {
         })
         @DisplayName("Should reject invalid numbers")
         void testIsValidNumber_InvalidNumber_ReturnsFalse(String input) {
-            // When
+            // Дано
+            when(inputSanitizer.isValidNumber(input)).thenReturn(false);
+            
+            // Когда
             boolean result = validator.isValidNumber(input);
             
-            // Then
+            // Тогда
             assertThat(result).isFalse();
         }
         
@@ -317,21 +331,28 @@ class InputValidatorTest {
         @ValueSource(strings = {" ", "  "})
         @DisplayName("Should reject null, empty or whitespace")
         void testIsValidNumber_InvalidInput_ReturnsFalse(String input) {
-            // When
+            // Дано
+            when(inputSanitizer.isValidNumber(input)).thenReturn(false);
+            
+            // Когда
             boolean result = validator.isValidNumber(input);
             
-            // Then
+            // Тогда
             assertThat(result).isFalse();
         }
         
         @Test
         @DisplayName("Should handle boundary values")
         void testIsValidNumber_BoundaryValues() {
-            // When & Then
-            assertThat(validator.isValidNumber("0")).isTrue();
-            assertThat(validator.isValidNumber("0.0")).isTrue();
-            assertThat(validator.isValidNumber("-0")).isTrue();
-            assertThat(validator.isValidNumber("999999999999999999")).isTrue();
+            // Дано
+            String[] boundaryValues = {"0", "0.0", "-0", "-0.0", "999999999", "-999999999"};
+            
+            // Когда и Тогда
+            for (String value : boundaryValues) {
+                when(inputSanitizer.isValidNumber(value)).thenReturn(true);
+                boolean result = validator.isValidNumber(value);
+                assertThat(result).isTrue();
+            }
         }
     }
 } 

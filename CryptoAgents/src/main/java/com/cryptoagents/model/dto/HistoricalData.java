@@ -13,10 +13,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Data Transfer Object representing historical cryptocurrency price data.
+ * Data Transfer Object, представляющий исторические данные цен криптовалют.
  * 
- * This class contains time-series data for a cryptocurrency over a specified period,
- * including price points, timestamps, and statistical information.
+ * Этот класс содержит временные ряды данных для криптовалюты за указанный период,
+ * включая ценовые точки, временные метки и статистическую информацию.
  */
 @Data
 @NoArgsConstructor
@@ -30,7 +30,7 @@ public class HistoricalData {
     private List<PricePoint> pricePoints = new ArrayList<>();
     private LocalDateTime retrievedAt = LocalDateTime.now();
     
-    // Statistical data (calculated, no setters)
+    // Статистические данные (вычисляемые, без сеттеров)
     @Setter(lombok.AccessLevel.NONE)
     private BigDecimal minPrice;
     @Setter(lombok.AccessLevel.NONE)
@@ -46,7 +46,7 @@ public class HistoricalData {
     @Setter(lombok.AccessLevel.NONE)
     private BigDecimal totalChangePercentage;
 
-    // Constructor with basic fields
+    // Конструктор с базовыми полями
     public HistoricalData(String ticker, TimePeriod period) {
         this.ticker = ticker;
         this.period = period;
@@ -55,7 +55,7 @@ public class HistoricalData {
     }
 
     /**
-     * Inner class representing a single price point in time.
+     * Внутренний класс, представляющий одну ценовую точку во времени.
      */
     @Data
     @NoArgsConstructor
@@ -77,18 +77,18 @@ public class HistoricalData {
         }
     }
 
-    // Custom setter for pricePoints to trigger statistics calculation
+    // Пользовательский сеттер для pricePoints для запуска вычисления статистики
     public void setPricePoints(List<PricePoint> pricePoints) {
         this.pricePoints = pricePoints;
         calculateStatistics();
     }
 
-    // Utility methods
+    // Утилитарные методы
 
     /**
-     * Adds a price point to the historical data and recalculates statistics.
+     * Добавляет ценовую точку к историческим данным и пересчитывает статистику.
      * 
-     * @param pricePoint The price point to add
+     * @param pricePoint ценовая точка для добавления
      */
     public void addPricePoint(PricePoint pricePoint) {
         if (pricePoints == null) {
@@ -99,87 +99,95 @@ public class HistoricalData {
     }
 
     /**
-     * Calculates statistical data from the price points.
+     * Вычисляет статистические данные из ценовых точек.
      */
     private void calculateStatistics() {
         if (pricePoints == null || pricePoints.isEmpty()) {
             return;
         }
 
-        BigDecimal sum = BigDecimal.ZERO;
-        BigDecimal min = null;
-        BigDecimal max = null;
+        // Находим минимальную и максимальную цены
+        minPrice = pricePoints.stream()
+                .map(PricePoint::getPrice)
+                .filter(price -> price != null)
+                .min(BigDecimal::compareTo)
+                .orElse(null);
 
-        for (PricePoint point : pricePoints) {
-            if (point.getPrice() != null) {
-                sum = sum.add(point.getPrice());
-                
-                if (min == null || point.getPrice().compareTo(min) < 0) {
-                    min = point.getPrice();
-                }
-                
-                if (max == null || point.getPrice().compareTo(max) > 0) {
-                    max = point.getPrice();
+        maxPrice = pricePoints.stream()
+                .map(PricePoint::getPrice)
+                .filter(price -> price != null)
+                .max(BigDecimal::compareTo)
+                .orElse(null);
+
+        // Вычисляем среднюю цену
+        List<BigDecimal> validPrices = pricePoints.stream()
+                .map(PricePoint::getPrice)
+                .filter(price -> price != null)
+                .collect(Collectors.toList());
+
+        if (!validPrices.isEmpty()) {
+            BigDecimal sum = validPrices.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+            averagePrice = sum.divide(BigDecimal.valueOf(validPrices.size()), 4, BigDecimal.ROUND_HALF_UP);
+        }
+
+        // Устанавливаем начальную и конечную цены
+        if (!pricePoints.isEmpty()) {
+            startPrice = pricePoints.get(0).getPrice();
+            endPrice = pricePoints.get(pricePoints.size() - 1).getPrice();
+
+            // Вычисляем общее изменение
+            if (startPrice != null && endPrice != null) {
+                totalChange = endPrice.subtract(startPrice);
+                if (startPrice.compareTo(BigDecimal.ZERO) > 0) {
+                    totalChangePercentage = totalChange.divide(startPrice, 4, BigDecimal.ROUND_HALF_UP)
+                            .multiply(BigDecimal.valueOf(100));
                 }
             }
         }
 
-        // Normalize all values to same scale for consistency
-        this.minPrice = min != null ? min.setScale(2, BigDecimal.ROUND_HALF_UP) : null;
-        this.maxPrice = max != null ? max.setScale(2, BigDecimal.ROUND_HALF_UP) : null;
-        this.averagePrice = sum.divide(BigDecimal.valueOf(pricePoints.size()), 2, BigDecimal.ROUND_HALF_UP);
-
+        // Устанавливаем даты начала и конца
         if (!pricePoints.isEmpty()) {
-            this.startPrice = pricePoints.get(0).getPrice() != null ? 
-                pricePoints.get(0).getPrice().setScale(2, BigDecimal.ROUND_HALF_UP) : null;
-            this.endPrice = pricePoints.get(pricePoints.size() - 1).getPrice() != null ?
-                pricePoints.get(pricePoints.size() - 1).getPrice().setScale(2, BigDecimal.ROUND_HALF_UP) : null;
-            
-            if (startPrice != null && endPrice != null && startPrice.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal change = endPrice.subtract(startPrice);
-                this.totalChange = change.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO : change.setScale(2, BigDecimal.ROUND_HALF_UP);
-                
-                BigDecimal percentage = change.divide(startPrice, 4, BigDecimal.ROUND_HALF_UP).multiply(BigDecimal.valueOf(100));
-                this.totalChangePercentage = percentage.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO : percentage;
-            }
+            startDate = pricePoints.get(0).getTimestamp();
+            endDate = pricePoints.get(pricePoints.size() - 1).getTimestamp();
         }
     }
 
     /**
-     * Returns the number of data points in this historical data.
+     * Возвращает количество точек данных в этих исторических данных.
      * 
-     * @return Number of price points
+     * @return Количество ценовых точек
      */
     public int getDataPointsCount() {
         return pricePoints != null ? pricePoints.size() : 0;
     }
 
     /**
-     * Checks if this historical data contains valid price information.
+     * Проверяет, содержат ли эти исторические данные валидную ценовую информацию.
      * 
-     * @return true if there are price points with valid data
+     * @return true если есть ценовые точки с валидными данными
      */
     public boolean hasValidData() {
-        return pricePoints != null && !pricePoints.isEmpty() && 
-               pricePoints.stream().anyMatch(p -> p.getPrice() != null);
+        return pricePoints != null && !pricePoints.isEmpty() &&
+               pricePoints.stream().anyMatch(point -> point.getPrice() != null);
     }
 
     /**
-     * Returns true if the price has increased over the period.
+     * Возвращает true, если цена увеличилась за период.
      * 
-     * @return true if end price is higher than start price
+     * @return true если конечная цена выше начальной
      */
     public boolean isPriceIncreasing() {
-        return totalChangePercentage != null && totalChangePercentage.compareTo(BigDecimal.ZERO) > 0;
+        return startPrice != null && endPrice != null && 
+               endPrice.compareTo(startPrice) > 0;
     }
-    
+
     /**
-     * Returns a list of prices from all price points.
+     * Возвращает список цен из всех ценовых точек.
      * 
-     * @return List of prices
+     * @return Список цен
      */
     public List<BigDecimal> getPrices() {
-        if (pricePoints == null || pricePoints.isEmpty()) {
+        if (pricePoints == null) {
             return new ArrayList<>();
         }
         return pricePoints.stream()
@@ -190,7 +198,14 @@ public class HistoricalData {
 
     @Override
     public String toString() {
-        return String.format("HistoricalData{ticker='%s', period=%s, dataPoints=%d, minPrice=%s, maxPrice=%s}",
-                ticker, period != null ? period.name() : null, getDataPointsCount(), minPrice, maxPrice);
+        return "HistoricalData{" +
+                "ticker='" + ticker + '\'' +
+                ", period=" + period +
+                ", dataPoints=" + getDataPointsCount() +
+                ", startPrice=" + startPrice +
+                ", endPrice=" + endPrice +
+                ", totalChange=" + totalChange +
+                ", totalChangePercentage=" + totalChangePercentage +
+                '}';
     }
 } 

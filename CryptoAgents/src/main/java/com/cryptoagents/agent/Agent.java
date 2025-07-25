@@ -3,62 +3,62 @@ package com.cryptoagents.agent;
 import com.cryptoagents.model.AnalysisResult;
 
 /**
- * Base interface for all cryptocurrency analysis agents.
+ * Базовый интерфейс для всех агентов анализа криптовалют.
  * 
- * Each agent implements specific analysis capabilities:
- * - Analyst: Technical analysis
- * - Risk Manager: Risk assessment
- * - Trader: Trading recommendations
+ * Каждый агент реализует специфические возможности анализа:
+ * - Аналитик: Технический анализ
+ * - Риск-менеджер: Оценка рисков
+ * - Трейдер: Торговые рекомендации
  * 
- * Note: Implementations should use SLF4J logger:
+ * Примечание: Реализации должны использовать SLF4J логгер:
  * private static final Logger logger = LoggerFactory.getLogger(AgentImplementation.class);
  */
 public interface Agent {
     
     /**
-     * Get the unique name of this agent
-     * @return agent name (e.g., "ANALYST", "RISK_MANAGER", "TRADER")
+     * Получить уникальное имя этого агента
+     * @return имя агента (например, "ANALYST", "RISK_MANAGER", "TRADER")
      */
     String getName();
     
     /**
-     * Get the agent type for classification
-     * @return agent type identifier
+     * Получить тип агента для классификации
+     * @return идентификатор типа агента
      */
     AgentType getType();
     
     /**
-     * Perform analysis for a given cryptocurrency ticker
+     * Выполнить анализ для заданного тикера криптовалюты
      * 
-     * @param context the analysis context containing market data and previous agent results
-     * @return analysis result specific to this agent type
-     * @throws AgentAnalysisException if analysis fails
+     * @param context контекст анализа, содержащий рыночные данные и результаты предыдущих агентов
+     * @return результат анализа, специфичный для этого типа агента
+     * @throws AgentAnalysisException если анализ не удался
      */
     AnalysisResult analyze(AnalysisContext context) throws AgentAnalysisException;
     
     /**
-     * Check if the agent can perform analysis with the given context
+     * Проверить, может ли агент выполнить анализ с заданным контекстом
      * 
-     * @param context the analysis context to validate
-     * @return true if analysis can be performed, false otherwise
+     * @param context контекст анализа для валидации
+     * @return true если анализ может быть выполнен, false в противном случае
      */
     boolean canAnalyze(AnalysisContext context);
     
     /**
-     * Get the priority order for this agent in the analysis pipeline
-     * Lower numbers indicate higher priority (executed first)
+     * Получить приоритетный порядок для этого агента в конвейере анализа
+     * Меньшие числа указывают на более высокий приоритет (выполняется первым)
      * 
-     * @return priority order (Analyst=1, Risk Manager=2, Trader=3)
+     * @return порядок приоритета (Аналитик=1, Риск-менеджер=2, Трейдер=3)
      */
     int getPriority();
     
     /**
-     * Enumeration for agent types
+     * Перечисление для типов агентов
      */
     enum AgentType {
-        ANALYST("Technical Analysis Agent"),
-        RISK_MANAGER("Risk Assessment Agent"), 
-        TRADER("Trading Recommendation Agent");
+        ANALYST("Агент технического анализа"),
+        RISK_MANAGER("Агент оценки рисков"), 
+        TRADER("Агент торговых рекомендаций");
         
         private final String description;
         
