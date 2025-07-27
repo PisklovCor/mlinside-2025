@@ -6,7 +6,6 @@ import com.multiagent.agent.FundamentalAnalysisAgent;
 import com.multiagent.agent.SentimentAnalysisAgent;
 import com.multiagent.agent.TechnicalAnalysisAgent;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -17,16 +16,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class CryptoAnalysisService {
 
-    @Autowired
-    private TechnicalAnalysisAgent technicalAgent;
+    private final TechnicalAnalysisAgent technicalAgent;
 
-    @Autowired
-    private FundamentalAnalysisAgent fundamentalAgent;
+    private final FundamentalAnalysisAgent fundamentalAgent;
 
-    @Autowired
-    private SentimentAnalysisAgent sentimentAgent;
+    private final SentimentAnalysisAgent sentimentAgent;
 
     public CryptoAnalysisResponse analyzeCryptocurrency(String cryptocurrency, String timeframe) {
         // Получаем анализы от всех агентов синхронно

@@ -52,7 +52,7 @@
 - **Java 21**
 - **Spring Boot 3.3.0**
 - **Spring AI 1.0.0-M4**
-- **OpenAI GPT-4**
+- **OpenRouter**
 - **Maven** для сборки
 - **JUnit 5** для тестирования
 - **Mockito** для мокирования
@@ -132,7 +132,6 @@ GET /api/crypto/analyze/Bitcoin/async?timeframe=2%20недели
 ### Проверка состояния
 
 ```http
-GET /api/crypto/health
 GET /api/crypto/agents/status
 ```
 
@@ -198,10 +197,12 @@ spring:
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
+      base-url: https://openrouter.ai/api
       chat:
         options:
-          model: gpt-4
+          model: anthropic/claude-3-sonnet
           temperature: 0.7
+          maxTokens: 1000
 
 server:
   port: 8080
@@ -312,10 +313,6 @@ console.log(`Уверенность: ${analysis.averageConfidence}`);
 ## 📄 Лицензия
 
 MIT License - см. файл [LICENSE](LICENSE) для деталей.
-
-## 👥 Авторы
-
-- Ваше имя - [@yourhandle](https://github.com/yourhandle)
 
 ## 🙏 Благодарности
 

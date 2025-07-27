@@ -7,17 +7,16 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.concurrent.CompletableFuture;
 
+@Validated
 @RestController
 @RequestMapping("/api/crypto")
 @CrossOrigin(origins = "*")
-@Validated
 @RequiredArgsConstructor
 public class CryptoAnalysisController {
 
@@ -76,12 +75,6 @@ public class CryptoAnalysisController {
         return analysisService.analyzeCryptocurrencyAsync(crypto, timeframe)
                 .thenApply(ResponseEntity::ok)
                 .exceptionally(ex -> ResponseEntity.internalServerError().build());
-    }
-
-    @GetMapping("/health")
-    public ResponseEntity<String> healthCheck() {
-        return ResponseEntity.ok("Crypto Multi-Agent System is running with Spring AI " +
-                getClass().getPackage().getImplementationVersion());
     }
 
     @GetMapping("/agents/status")
