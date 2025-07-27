@@ -359,4 +359,42 @@ public class CryptoDataFallbackService {
         
         return stats;
     }
+    
+    /**
+     * Записывает успешный вызов API.
+     */
+    public void recordSuccess() {
+        successCount.incrementAndGet();
+        failureCount.set(0);
+        
+        if (circuitState == CircuitState.HALF_OPEN && successCount.get() >= HALF_OPEN_MAX_CALLS) {
+            circuitState = CircuitState.CLOSED;
+            log.info("Circuit Breaker переходит в состояние CLOSED");
+        }
+    }
+    
+    /**
+     * Записывает неудачный вызов API.
+     */
+    public void recordFailure() {
+        failureCount.incrementAndGet();
+        lastFailureTime = System.currentTimeMillis();
+        
+        if (failureCount.get() >= FAILURE_THRESHOLD && circuitState == CircuitState.CLOSED) {
+            circuitState = CircuitState.OPEN;
+            log.warn("Circuit Breaker переходит в состояние OPEN");
+        }
+    }
+    
+    /**
+     * Сохраняет экстренные данные.
+     */
+    public void storeEmergencyData(String ticker, BigDecimal price, MarketData marketData) {
+        if (price != null) {
+            priceCache.put(ticker.toUpperCase(), price);
+        }
+        if (marketData != null) {
+            marketDataCache.put(ticker.toUpperCase(), marketData);
+        }
+    }
 } 

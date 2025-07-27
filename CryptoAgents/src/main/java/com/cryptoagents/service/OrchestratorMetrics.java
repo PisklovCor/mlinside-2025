@@ -1,5 +1,6 @@
 package com.cryptoagents.service;
 
+import com.cryptoagents.model.dto.MetricsResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -254,5 +255,68 @@ public class OrchestratorMetrics {
         metrics.put("tickerMetrics", tickerMetrics);
         
         return metrics;
+    }
+    
+    private long lastResetTime = System.currentTimeMillis();
+    
+    /**
+     * Сбрасывает все метрики.
+     */
+    public void reset() {
+        totalAnalysisRequests.set(0);
+        successfulAnalysisRequests.set(0);
+        failedAnalysisRequests.set(0);
+        totalExecutionTime.set(0);
+        averageExecutionTime.set(0);
+        
+        agentExecutionCounts.clear();
+        agentExecutionTimes.clear();
+        agentErrorCounts.clear();
+        tickerAnalysisCounts.clear();
+        tickerExecutionTimes.clear();
+        tickerErrorCounts.clear();
+        
+        lastResetTime = System.currentTimeMillis();
+        log.info("Все метрики сброшены");
+    }
+    
+    /**
+     * Получает время последнего сброса метрик.
+     * 
+     * @return время последнего сброса в миллисекундах
+     */
+    public long getLastResetTime() {
+        return lastResetTime;
+    }
+    
+    /**
+     * Логирует сводку метрик.
+     */
+    public void logMetricsSummary() {
+        log.info("=== Сводка метрик оркестратора ===");
+        log.info("Общие запросы: {}", getTotalAnalysisRequests());
+        log.info("Успешные запросы: {}", getSuccessfulAnalysisRequests());
+        log.info("Неудачные запросы: {}", getFailedAnalysisRequests());
+        log.info("Процент успеха: {:.2f}%", getSuccessRate());
+        log.info("Среднее время выполнения: {} мс", getAverageExecutionTime());
+        log.info("Общее время выполнения: {} мс", getTotalExecutionTime());
+        log.info("=====================================");
+    }
+    
+    /**
+     * Преобразует метрики в ответ для API.
+     * 
+     * @return объект MetricsResponse
+     */
+    public MetricsResponse toMetricsResponse() {
+        return new MetricsResponse(
+            getTotalAnalysisRequests(),
+            getSuccessfulAnalysisRequests(),
+            getFailedAnalysisRequests(),
+            getSuccessRate(),
+            getAverageExecutionTime(),
+            getTotalExecutionTime(),
+            getLastResetTime()
+        );
     }
 } 

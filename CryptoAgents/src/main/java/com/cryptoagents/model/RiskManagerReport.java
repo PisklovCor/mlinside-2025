@@ -98,6 +98,21 @@ public class RiskManagerReport extends AnalysisResult {
     @Column(name = "risk_metrics_date")
     private LocalDateTime riskMetricsDate;
     
+    @Column(name = "risk_score", precision = 5, scale = 2)
+    private BigDecimal riskScore;
+    
+    @Column(name = "volatility_score", precision = 5, scale = 2)
+    private BigDecimal volatilityScore;
+    
+    @Column(name = "liquidity_risk", precision = 5, scale = 2)
+    private BigDecimal liquidityRisk;
+    
+    @Column(name = "recommended_position_size", precision = 19, scale = 8)
+    private BigDecimal recommendedPositionSize;
+    
+    @Column(name = "stop_loss_level", precision = 19, scale = 8)
+    private BigDecimal stopLossLevel;
+    
     // Конструкторы
     public RiskManagerReport() {
         super();

@@ -122,6 +122,24 @@ public class AnalystReport extends AnalysisResult {
     @Column(name = "next_analysis_due")
     private LocalDateTime nextAnalysisDue;
     
+    @Column(name = "current_price", precision = 19, scale = 8)
+    private BigDecimal currentPrice;
+    
+    @Column(name = "price_target", precision = 19, scale = 8)
+    private BigDecimal priceTarget;
+    
+    @Column(name = "technical_indicators", columnDefinition = "TEXT")
+    private String technicalIndicators;
+    
+    @Column(name = "momentum_indicators", columnDefinition = "TEXT")
+    private String momentumIndicators;
+    
+    @Column(name = "pattern_recognition", columnDefinition = "TEXT")
+    private String patternRecognition;
+    
+    @Column(name = "time_horizon_days")
+    private Integer timeHorizonDays;
+    
     // Конструкторы
     public AnalystReport() {
         super();

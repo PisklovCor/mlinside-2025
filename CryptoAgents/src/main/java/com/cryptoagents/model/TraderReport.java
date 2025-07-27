@@ -1,5 +1,8 @@
 package com.cryptoagents.model;
 
+import com.cryptoagents.model.enums.ActionRecommendation;
+import com.cryptoagents.model.enums.OrderType;
+import com.cryptoagents.model.enums.TimeInForce;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -21,7 +24,7 @@ public class TraderReport extends AnalysisResult {
     
     @Enumerated(EnumType.STRING)
     @Column(name = "action_recommendation", nullable = false)
-    private TradingAction actionRecommendation;
+    private ActionRecommendation actionRecommendation;
     
     @Column(name = "entry_price", precision = 19, scale = 8)
     private BigDecimal entryPrice;
@@ -88,42 +91,4 @@ public class TraderReport extends AnalysisResult {
         super(ticker, "TRADER_AGENT");
     }
     
-    /**
-     * Перечисление для торговых действий.
-     */
-    public enum TradingAction {
-        BUY,
-        SELL,
-        HOLD,
-        BUY_STRONG,
-        SELL_STRONG,
-        ACCUMULATE,
-        DISTRIBUTE,
-        WAIT
-    }
-    
-    /**
-     * Перечисление для типов ордеров.
-     */
-    public enum OrderType {
-        MARKET,
-        LIMIT,
-        STOP,
-        STOP_LIMIT,
-        TRAILING_STOP,
-        ICEBERG,
-        TWAP,
-        VWAP
-    }
-    
-    /**
-     * Перечисление для опций времени действия.
-     */
-    public enum TimeInForce {
-        GTC,  // Действителен до отмены
-        IOC,  // Немедленно или отмена
-        FOK,  // Исполнить или отменить
-        DAY,  // Дневной ордер
-        GTD   // Действителен до даты
-    }
 } 

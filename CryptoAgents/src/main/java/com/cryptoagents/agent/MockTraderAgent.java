@@ -6,6 +6,8 @@ import com.cryptoagents.model.enums.MarketTrend;
 import com.cryptoagents.model.enums.SignalStrength;
 import com.cryptoagents.model.RiskManagerReport;
 import com.cryptoagents.model.TraderReport;
+import com.cryptoagents.model.enums.ActionRecommendation;
+import com.cryptoagents.model.enums.OrderType;
 import org.springframework.stereotype.Component;
 
 /**
@@ -113,36 +115,36 @@ public class MockTraderAgent extends AbstractAgent {
         double maxPosition = riskReport.getRecommendedPositionSize().doubleValue();
         double currentPrice = context.getMarketData().getCurrentPrice().doubleValue();
         
-        TraderReport.TradingAction tradingAction;
+        ActionRecommendation tradingAction;
         double positionSize = 0.0;
         String reasoning;
         
         // Trading decision logic based on trend and risk
         if (trend == MarketTrend.BULLISH) {
             if (riskLevel == RiskManagerReport.RiskLevel.LOW) {
-                tradingAction = TraderReport.TradingAction.BUY;
+                tradingAction = ActionRecommendation.BUY;
                 positionSize = maxPosition;
                 reasoning = "Strong bullish signal with manageable risk";
             } else if (riskLevel == RiskManagerReport.RiskLevel.MODERATE) {
-                tradingAction = TraderReport.TradingAction.BUY;
+                tradingAction = ActionRecommendation.BUY;
                 positionSize = maxPosition * 0.7; // Reduce position due to risk
                 reasoning = "Bullish signal but reduced position due to moderate risk";
             } else { // HIGH risk
-                tradingAction = TraderReport.TradingAction.WAIT;
+                tradingAction = ActionRecommendation.WAIT;
                 positionSize = 0.0;
                 reasoning = "Bullish signal rejected due to high risk level";
             }
         } else if (trend == MarketTrend.BEARISH) {
-            tradingAction = TraderReport.TradingAction.SELL;
+            tradingAction = ActionRecommendation.SELL;
             positionSize = 1.0; // Sell full position
             reasoning = "Bearish signal confirmed by risk assessment";
         } else { // SIDEWAYS, VOLATILE, UNCERTAIN
             if (riskLevel == RiskManagerReport.RiskLevel.HIGH) {
-                tradingAction = TraderReport.TradingAction.SELL;
+                tradingAction = ActionRecommendation.SELL;
                 positionSize = 0.5; // Reduce position by half
                 reasoning = "High risk detected, reducing exposure";
             } else {
-                tradingAction = TraderReport.TradingAction.HOLD;
+                tradingAction = ActionRecommendation.HOLD;
                 positionSize = 0.0;
                 reasoning = "Maintain current position";
             }
@@ -154,22 +156,22 @@ public class MockTraderAgent extends AbstractAgent {
         report.setTradingRationale(reasoning);
         
         // Set order details if action is BUY or SELL
-        if (tradingAction == TraderReport.TradingAction.BUY) {
-            report.setOrderType(TraderReport.OrderType.MARKET);
+        if (tradingAction == ActionRecommendation.BUY) {
+            report.setOrderType(OrderType.MARKET);
             report.setEntryPrice(java.math.BigDecimal.valueOf(currentPrice));
             report.setStopLoss(riskReport.getStopLossLevel());
             // Set take profit target at 15% above entry
             report.setTakeProfit(java.math.BigDecimal.valueOf(currentPrice * 1.15));
-        } else if (tradingAction == TraderReport.TradingAction.SELL) {
-            report.setOrderType(TraderReport.OrderType.MARKET);
+        } else if (tradingAction == ActionRecommendation.SELL) {
+            report.setOrderType(OrderType.MARKET);
             report.setExitPrice(java.math.BigDecimal.valueOf(currentPrice));
         }
         
         // Set urgency level
         if (riskLevel == RiskManagerReport.RiskLevel.HIGH && 
-            (tradingAction == TraderReport.TradingAction.SELL)) {
+            (tradingAction == ActionRecommendation.SELL)) {
             report.setUrgencyLevel(3); // HIGH
-        } else if (tradingAction == TraderReport.TradingAction.BUY && 
+        } else if (tradingAction == ActionRecommendation.BUY && 
                    riskLevel == RiskManagerReport.RiskLevel.LOW) {
             report.setUrgencyLevel(2); // MEDIUM
         } else {
