@@ -1,16 +1,19 @@
 package com.cryptoagents;
 
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 
 /**
  * Базовый абстрактный класс для всех Spring Boot тестов.
  * Содержит общую конфигурацию для тестирования.
  */
-@Slf4j
+
 @ActiveProfiles("test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@SpringBootTest
+//@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+//@TestPropertySource(properties = {"spring.config.location=classpath:application-test.properties"})
 public abstract class BaseSpringBootTest {
 
     /**

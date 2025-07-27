@@ -1,7 +1,7 @@
 //package com.cryptoagents.service;
 //
 //import com.cryptoagents.BaseSpringBootTest;
-//import com.cryptoagents.agent.DefaultAgentFactory;
+//import com.cryptoagents.agent.old.DefaultAgentFactory;
 //import com.cryptoagents.model.AnalysisReport;
 //import com.cryptoagents.model.dto.MarketData;
 //import com.cryptoagents.model.dto.HistoricalData;
