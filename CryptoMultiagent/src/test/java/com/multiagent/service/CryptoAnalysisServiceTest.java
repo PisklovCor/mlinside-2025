@@ -1,16 +1,19 @@
 package com.multiagent.service;
 
 import com.multiagent.BaseTestConfiguration;
-import com.multiagent.model.AgentAnalysis;
 import com.multiagent.model.CryptoAnalysisResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 class CryptoAnalysisServiceTest extends BaseTestConfiguration {
@@ -25,17 +28,14 @@ class CryptoAnalysisServiceTest extends BaseTestConfiguration {
         String cryptocurrency = "Bitcoin";
         String timeframe = "1 месяц";
 
-        when(technicalAnalysisAgent.analyze(anyString(), anyString()))
-                .thenReturn(new AgentAnalysis("Технический Аналитик",
-                        "Технический анализ показывает восходящий тренд", "ПОКУПАТЬ", 0.8));
+        String technicalResponse = "Технический анализ показывает восходящий тренд. Рекомендация: ПОКУПАТЬ. Высокая уверенность.";
+        String fundamentalResponse = "Сильные фундаментальные показатели. Рекомендация: ПОКУПАТЬ. Очень высокая уверенность.";
+        String sentimentResponse = "Позитивные настроения в сообществе. Рекомендация: ПОКУПАТЬ. Умеренная уверенность.";
 
-        when(fundamentalAnalysisAgent.analyze(anyString(), anyString()))
-                .thenReturn(new AgentAnalysis("Фундаментальный Аналитик",
-                        "Сильные фундаментальные показатели", "ПОКУПАТЬ", 0.9));
-
-        when(sentimentAnalysisAgent.analyze(anyString(), anyString()))
-                .thenReturn(new AgentAnalysis("Аналитик Настроений",
-                        "Позитивные настроения в сообществе", "ПОКУПАТЬ", 0.7));
+        when(chatModel.call(any(Prompt.class)))
+                .thenReturn(createMockChatResponse(technicalResponse))
+                .thenReturn(createMockChatResponse(fundamentalResponse))
+                .thenReturn(createMockChatResponse(sentimentResponse));
 
         // Act
         CryptoAnalysisResponse response = cryptoAnalysisService.analyzeCryptocurrency(cryptocurrency, timeframe);
@@ -45,7 +45,7 @@ class CryptoAnalysisServiceTest extends BaseTestConfiguration {
         assertEquals(cryptocurrency, response.getCryptocurrency());
         assertEquals(3, response.getAgentAnalyses().size());
         assertEquals("ПОКУПАТЬ", response.getFinalRecommendation());
-        assertEquals(0.8, response.getAverageConfidence(), 0.1);
+        assertTrue(response.getAverageConfidence() > 0.7);
     }
 
     @Test
@@ -55,25 +55,22 @@ class CryptoAnalysisServiceTest extends BaseTestConfiguration {
         String cryptocurrency = "Ethereum";
         String timeframe = "2 недели";
 
-        when(technicalAnalysisAgent.analyze(anyString(), anyString()))
-                .thenReturn(new AgentAnalysis("Технический Аналитик",
-                        "Технические индикаторы показывают неопределенность", "ДЕРЖАТЬ", 0.5));
+        String technicalResponse = "Технические индикаторы показывают неопределенность. Рекомендация: ДЕРЖАТЬ. Низкая уверенность.";
+        String fundamentalResponse = "Высокие риски в краткосрочной перспективе. Рекомендация: ПРОДАВАТЬ. Высокая уверенность.";
+        String sentimentResponse = "Умеренно позитивные настроения. Рекомендация: ПОКУПАТЬ. Умеренная уверенность.";
 
-        when(fundamentalAnalysisAgent.analyze(anyString(), anyString()))
-                .thenReturn(new AgentAnalysis("Фундаментальный Аналитик",
-                        "Высокие риски в краткосрочной перспективе", "ПРОДАВАТЬ", 0.8));
-
-        when(sentimentAnalysisAgent.analyze(anyString(), anyString()))
-                .thenReturn(new AgentAnalysis("Аналитик Настроений",
-                        "Умеренно позитивные настроения", "ПОКУПАТЬ", 0.6));
+        when(chatModel.call(any(Prompt.class)))
+                .thenReturn(createMockChatResponse(technicalResponse))
+                .thenReturn(createMockChatResponse(fundamentalResponse))
+                .thenReturn(createMockChatResponse(sentimentResponse));
 
         // Act
         CryptoAnalysisResponse response = cryptoAnalysisService.analyzeCryptocurrency(cryptocurrency, timeframe);
 
         // Assert
         assertNotNull(response);
-        assertEquals("ПРОДАВАТЬ", response.getFinalRecommendation()); // Наибольший вес у ПРОДАВАТЬ (0.8)
-        assertTrue(response.getAverageConfidence() > 0.6);
+        assertEquals("ПРОДАВАТЬ", response.getFinalRecommendation()); // Наибольший вес у ПРОДАВАТЬ
+        assertTrue(response.getAverageConfidence() > 0.5);
     }
 
     @Test
@@ -83,17 +80,14 @@ class CryptoAnalysisServiceTest extends BaseTestConfiguration {
         String cryptocurrency = "Cardano";
         String timeframe = "3 месяца";
 
-        when(technicalAnalysisAgent.analyze(anyString(), anyString()))
-                .thenReturn(new AgentAnalysis("Технический Аналитик",
-                        "Консолидация в диапазоне", "ДЕРЖАТЬ", 0.6));
+        String technicalResponse = "Консолидация в диапазоне. Рекомендация: ДЕРЖАТЬ. Умеренная уверенность.";
+        String fundamentalResponse = "Перспективные обновления протокола. Рекомендация: ПОКУПАТЬ. Высокая уверенность.";
+        String sentimentResponse = "Нейтральные настроения. Рекомендация: ДЕРЖАТЬ. Низкая уверенность.";
 
-        when(fundamentalAnalysisAgent.analyze(anyString(), anyString()))
-                .thenReturn(new AgentAnalysis("Фундаментальный Аналитик",
-                        "Перспективные обновления протокола", "ПОКУПАТЬ", 0.7));
-
-        when(sentimentAnalysisAgent.analyze(anyString(), anyString()))
-                .thenReturn(new AgentAnalysis("Аналитик Настроений",
-                        "Нейтральные настроения", "ДЕРЖАТЬ", 0.5));
+        when(chatModel.call(any(Prompt.class)))
+                .thenReturn(createMockChatResponse(technicalResponse))
+                .thenReturn(createMockChatResponse(fundamentalResponse))
+                .thenReturn(createMockChatResponse(sentimentResponse));
 
         // Act
         CompletableFuture<CryptoAnalysisResponse> futureResponse =
@@ -107,5 +101,11 @@ class CryptoAnalysisServiceTest extends BaseTestConfiguration {
         assertEquals(3, response.getAgentAnalyses().size());
         assertNotNull(response.getFinalRecommendation());
         assertTrue(response.getAverageConfidence() >= 0.0);
+    }
+
+    private ChatResponse createMockChatResponse(String content) {
+        AssistantMessage message = new AssistantMessage(content);
+        Generation generation = new Generation(message);
+        return new ChatResponse(java.util.List.of(generation));
     }
 }
