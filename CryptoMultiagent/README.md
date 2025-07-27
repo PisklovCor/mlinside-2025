@@ -274,9 +274,6 @@ curl -X POST http://localhost:8080/api/crypto/analyze \
 
 # Анализ Ethereum через GET
 curl "http://localhost:8080/api/crypto/analyze/Ethereum?timeframe=2%20недели"
-
-# Проверка состояния системы
-curl http://localhost:8080/api/crypto/health
 ```
 
 ### JavaScript пример

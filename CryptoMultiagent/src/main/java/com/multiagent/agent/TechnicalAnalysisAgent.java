@@ -1,6 +1,7 @@
 package com.multiagent.agent;
 
 import com.multiagent.model.AgentAnalysis;
+import com.multiagent.util.AnalysisUtils;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Component;
 
@@ -43,22 +44,9 @@ public class TechnicalAnalysisAgent extends BaseAgent {
         );
 
         String analysis = getAiResponse(TECHNICAL_ANALYSIS_PROMPT, templateValues);
-        String recommendation = extractRecommendation(analysis);
-        double confidence = extractConfidence(analysis);
+        String recommendation = AnalysisUtils.extractRecommendation(analysis);
+        double confidence = AnalysisUtils.extractConfidence(analysis);
 
         return new AgentAnalysis("Технический Аналитик", analysis, recommendation, confidence);
-    }
-
-    private String extractRecommendation(String analysis) {
-        String lowerAnalysis = analysis.toLowerCase();
-        if (lowerAnalysis.contains("покупать") || lowerAnalysis.contains("buy") ||
-                lowerAnalysis.contains("бычий") || lowerAnalysis.contains("восходящий")) {
-            return "ПОКУПАТЬ";
-        } else if (lowerAnalysis.contains("продавать") || lowerAnalysis.contains("sell") ||
-                lowerAnalysis.contains("медвежий") || lowerAnalysis.contains("нисходящий")) {
-            return "ПРОДАВАТЬ";
-        } else {
-            return "ДЕРЖАТЬ";
-        }
     }
 }

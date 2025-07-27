@@ -43,25 +43,4 @@ public abstract class BaseAgent {
             return "Ошибка при получении анализа: " + e.getMessage();
         }
     }
-
-    protected double extractConfidence(String analysis) {
-        String lowerAnalysis = analysis.toLowerCase();
-        if (lowerAnalysis.contains("высокая уверенность") ||
-                lowerAnalysis.contains("настоятельно рекомендую") ||
-                lowerAnalysis.contains("очень уверен")) {
-            return 0.9;
-        } else if (lowerAnalysis.contains("умеренная уверенность") ||
-                lowerAnalysis.contains("рекомендую") ||
-                lowerAnalysis.contains("довольно уверен")) {
-            return 0.7;
-        } else if (lowerAnalysis.contains("низкая уверенность") ||
-                lowerAnalysis.contains("осторожно") ||
-                lowerAnalysis.contains("не уверен")) {
-            return 0.5;
-        } else if (lowerAnalysis.contains("неопределенность") ||
-                lowerAnalysis.contains("сложно сказать")) {
-            return 0.3;
-        }
-        return 0.6; // значение по умолчанию
-    }
 }
