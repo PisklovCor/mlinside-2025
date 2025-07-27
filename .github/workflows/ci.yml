@@ -30,40 +30,25 @@ jobs:
 
       - name: Компиляция проекта
         run: |
-          cd CryptoAgents
+          cd CryptoMultiagent
           mvn clean compile
 
       - name: Создание JAR файла
         run: |
-          cd CryptoAgents
+          cd CryptoMultiagent
           mvn package -DskipTests
 
       - name: Загрузка артефактов сборки
         uses: actions/upload-artifact@v4
         with:
           name: jar-artifact
-          path: CryptoAgents/target/*.jar
+          path: CryptoMultiagent/target/*.jar
           retention-days: 30
 
   test:
     name: Тестирование
     runs-on: ubuntu-latest
     needs: build
-
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_DB: cryptoagents
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - name: Checkout код
@@ -86,22 +71,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: jar-artifact
-          path: CryptoAgents/target/
+          path: CryptoMultiagent/target/
 
       - name: Запуск тестов
         run: |
-          cd CryptoAgents
+          cd CryptoMultiagent
           mvn test
         env:
           SPRING_PROFILES_ACTIVE: test
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/cryptoagents
-          SPRING_DATASOURCE_USERNAME: postgres
-          SPRING_DATASOURCE_PASSWORD: password
 
       - name: Загрузка отчетов о тестах
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-reports
-          path: CryptoAgents/target/surefire-reports/
+          path: CryptoMultiagent/target/surefire-reports/
           retention-days: 30
