@@ -87,3 +87,38 @@ jobs:
           name: test-reports
           path: CryptoMultiagent/target/surefire-reports/
           retention-days: 30
+
+  docker-build:
+    name: Сборка Docker образа
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout код
+        uses: actions/checkout@v4
+
+      - name: Скачивание артефактов сборки
+        uses: actions/download-artifact@v4
+        with:
+          name: jar-artifact
+          path: CryptoMultiagent/target/
+
+      - name: Настройка Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Сборка Docker образа
+        run: |
+          cd CryptoMultiagent
+          docker build -t crypto-multiagent:latest .
+          docker tag crypto-multiagent:latest crypto-multiagent:${{ github.sha }}
+
+      - name: Сохранение Docker образа
+        run: |
+          docker save crypto-multiagent:latest | gzip > crypto-multiagent.tar.gz
+
+      - name: Загрузка Docker образа
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: CryptoMultiagent/crypto-multiagent.tar.gz
+          retention-days: 30
