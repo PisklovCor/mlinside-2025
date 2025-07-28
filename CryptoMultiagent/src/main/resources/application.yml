@@ -1,4 +1,6 @@
 spring:
+  application:
+    name: @project.name@
   ai:
     openai:
       api-key: ${OPENAI_API_KEY:your-api-key-here}
@@ -8,6 +10,9 @@ spring:
           model: ${OPENROUTER_MODEL:your-model-here}
           temperature: 0.7
           maxTokens: 1000
+          http-headers:
+            HTTP-Referer: "https://github.com/PisklovCor/mlinside-2025"
+            X-Title: "@project.name@ v@project.version@"
 
 server:
   port: 8080

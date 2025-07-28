@@ -2,11 +2,13 @@ package com.multiagent.agent;
 
 import com.multiagent.model.AgentAnalysis;
 import com.multiagent.util.AnalysisUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+@Slf4j
 @Component
 public class SentimentAnalysisAgent extends BaseAgent {
 
@@ -38,19 +40,33 @@ public class SentimentAnalysisAgent extends BaseAgent {
 
     public SentimentAnalysisAgent(ChatModel openAiChatModel) {
         super(openAiChatModel);
+        log.info("Агент: Аналитик Настроений - инициализирован");
     }
 
     @Override
     public AgentAnalysis analyze(String cryptocurrency, String timeframe) {
-        Map<String, Object> templateValues = Map.of(
-                "cryptocurrency", cryptocurrency,
-                "timeframe", timeframe
-        );
+        log.info("Начинаю анализ настроений криптовалюты: {} с временным интервалом: {}", cryptocurrency, timeframe);
+        
+        try {
+            Map<String, Object> templateValues = Map.of(
+                    "cryptocurrency", cryptocurrency,
+                    "timeframe", timeframe
+            );
 
-        String analysis = getAiResponse(SENTIMENT_ANALYSIS_PROMPT, templateValues);
-        String recommendation = AnalysisUtils.extractRecommendation(analysis);
-        double confidence = AnalysisUtils.extractConfidence(analysis);
+            log.debug("Отправка запроса к AI для анализа настроений с параметрами: {}", templateValues);
+            String analysis = getAiResponse(SENTIMENT_ANALYSIS_PROMPT, templateValues);
+            
+            log.debug("Получен ответ от AI, извлекаю рекомендацию и уверенность");
+            String recommendation = AnalysisUtils.extractRecommendation(analysis);
+            double confidence = AnalysisUtils.extractConfidence(analysis);
 
-        return new AgentAnalysis("Аналитик Настроений", analysis, recommendation, confidence);
+            log.info("Анализ настроений завершен. Рекомендация: {}, Уверенность: {}", recommendation, confidence);
+            log.debug("Полный анализ: {}", analysis);
+            
+            return new AgentAnalysis("Аналитик Настроений", analysis, recommendation, confidence);
+        } catch (Exception e) {
+            log.error("Ошибка при анализе настроений криптовалюты {}: {}", cryptocurrency, e.getMessage(), e);
+            throw e;
+        }
     }
 }
