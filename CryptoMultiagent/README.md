@@ -77,18 +77,22 @@ cd crypto-multiagent
 
 ### 2. Настройка конфигурации
 
-Создайте файл `application-local.yml` или установите переменную окружения:
+Создайте файл `application-local.yml` или установите переменные окружения:
 
 ```yaml
 spring:
   ai:
     openai:
       api-key: ${OPENAI_API_KEY:your-openai-api-key-here}
+      chat:
+        options:
+          model: ${OPENROUTER_MODEL:your-model-here}
 ```
 
-Или через переменную окружения:
+Или через переменные окружения:
 ```bash
 export OPENAI_API_KEY="your-openai-api-key"
+export OPENROUTER_MODEL="your-model-here"
 ```
 
 ### 3. Сборка проекта
