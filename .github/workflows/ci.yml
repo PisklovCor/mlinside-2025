@@ -125,7 +125,7 @@ jobs:
           retention-days: 30
 
   docker-push:
-    name: Публикация Docker образа в Docker Hub
+    name: Push в Docker Hub
     runs-on: ubuntu-latest
     needs: docker-build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -183,11 +183,12 @@ jobs:
           # Проверяем созданные теги
           docker images | grep "${DOCKER_USER}/crypto-multiagent"
           
-          # Пушим образы в Docker Hub
-          echo "Pushing latest tag..."
+          # Пушим образы в Docker Hub (репозиторий будет создан автоматически)
+          echo "Pushing latest tag (репозиторий будет создан автоматически, если не существует)..."
           docker push "${DOCKER_USER}/crypto-multiagent:latest"
           
           echo "Pushing SHA tag..."
           docker push "${DOCKER_USER}/crypto-multiagent:${{ github.sha }}"
           
           echo "✅ Образы успешно загружены в Docker Hub"
+          echo "📦 Репозиторий доступен по адресу: https://hub.docker.com/r/${DOCKER_USER}/crypto-multiagent"
