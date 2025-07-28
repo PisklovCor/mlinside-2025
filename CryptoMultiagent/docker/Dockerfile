@@ -6,13 +6,13 @@ FROM maven:3.9.5-eclipse-temurin-17 AS builder
 WORKDIR /app
 
 # Копирование pom.xml для кеширования зависимостей
-COPY ../pom.xml .
+COPY pom.xml .
 
 # Загрузка зависимостей (кеширование слоя)
 RUN mvn dependency:go-offline -B
 
 # Копирование исходного кода
-COPY ../src ./src
+COPY src ./src
 
 # Сборка приложения
 RUN mvn clean package -DskipTests

@@ -108,12 +108,13 @@ jobs:
 
       - name: Сборка Docker образа
         run: |
-          cd CryptoMultiagent/docker
-          docker build -t crypto-multiagent:latest .
+          cd CryptoMultiagent
+          docker build -f docker/Dockerfile -t crypto-multiagent:latest .
           docker tag crypto-multiagent:latest crypto-multiagent:${{ github.sha }}
 
       - name: Сохранение Docker образа
         run: |
+          cd CryptoMultiagent
           docker save crypto-multiagent:latest | gzip > crypto-multiagent.tar.gz
 
       - name: Загрузка Docker образа
