@@ -125,7 +125,7 @@ jobs:
           retention-days: 30
 
   docker-push:
-    name: Публикация Docker образа в Docker Hub
+    name: Push в Docker Hub
     runs-on: ubuntu-latest
     needs: docker-build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -152,10 +152,14 @@ jobs:
 
       - name: Push образа в Docker Hub
         run: |
+          # Получаем и очищаем имя пользователя
+          DOCKER_USER="${{ secrets.DOCKER_USERNAME }}"
+          echo "Docker username: $DOCKER_USER"
+          
           # Тегируем образ с именем пользователя Docker Hub
-          docker tag crypto-multiagent:latest ${{ secrets.DOCKER_USERNAME }}/crypto-multiagent:latest
-          docker tag crypto-multiagent:latest ${{ secrets.DOCKER_USERNAME }}/crypto-multiagent:${{ github.sha }}
+          docker tag crypto-multiagent:latest "${DOCKER_USER}/crypto-multiagent:latest"
+          docker tag crypto-multiagent:latest "${DOCKER_USER}/crypto-multiagent:${{ github.sha }}"
           
           # Пушим образы в Docker Hub
-          docker push ${{ secrets.DOCKER_USERNAME }}/crypto-multiagent:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/crypto-multiagent:${{ github.sha }}
+          docker push "${DOCKER_USER}/crypto-multiagent:latest"
+          docker push "${DOCKER_USER}/crypto-multiagent:${{ github.sha }}"
