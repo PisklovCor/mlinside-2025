@@ -148,6 +148,46 @@
             }
         }
 
+        /*.code-block {*/
+        /*    background: rgba(0, 0, 0, 0.4);*/
+        /*    padding: 20px;*/
+        /*    border-radius: 10px;*/
+        /*    font-family: 'Courier New', monospace;*/
+        /*    text-align: left;*/
+        /*    margin: 20px 0;*/
+        /*    border: 1px solid rgba(255, 255, 255, 0.2);*/
+        /*}*/
+
+        .highlight {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .architecture-diagram {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        .agent-box {
+            display: inline-block;
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px;
+            min-width: 200px;
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
         .code-block {
             background: rgba(0, 0, 0, 0.4);
             padding: 20px;
@@ -155,66 +195,179 @@
             font-family: 'Courier New', monospace;
             text-align: left;
             margin: 20px 0;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            font-size: 0.9em;
         }
 
-        .highlight {
-            color: #ffd700;
-            font-weight: bold;
+        .tech-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            font-size: 0.9em;
         }
+
     </style>
 </head>
 <body>
 <div class="progress-bar" id="progressBar"></div>
 
 <div class="slide-counter" id="slideCounter">
-    1 / 5
+    1 / 7
 </div>
 
 <div class="presentation-container">
     <!-- Слайд 1: Титульный -->
     <div class="slide active">
-        <h1>🚀 Моя Презентация</h1>
+        <h1>🚀 Multi-agent system</h1>
         <p>Добро пожаловать на интерактивную презентацию</p>
-        <p>Используйте кнопки навигации или клавиши ← →</p>
+        <p>Обучение MLinside: ИИ в разработке</p>
+        <p>Писклов А.А., июль 2025 гда</p>
     </div>
 
     <!-- Слайд 2: О проекте -->
     <div class="slide">
         <h2>📊 О проекте</h2>
         <ul>
-            <li>Современная веб-презентация на чистом JavaScript</li>
-            <li>Размещена на GitHub Pages</li>
-            <li>Адаптивный дизайн</li>
-            <li>Плавные анимации и переходы</li>
-            <li>Клавиатурная навигация</li>
+            <li>Мультиагентная архитектура с тремя специализированными AI-агентами</li>
+            <li>Комплексный анализ криптовалют: технический, фундаментальный, настроения</li>
+            <li>Взвешенные рекомендации на основе уверенности агентов</li>
+            <li>Асинхронная обработка для улучшенной производительности</li>
+            <li>REST API с валидацией входных данных</li>
+            <li>Comprehensive testing с покрытием всех компонентов</li>
         </ul>
     </div>
 
-    <!-- Слайд 3: Технологии -->
+    <!-- Слайд 3: Цели проекта -->
     <div class="slide">
-        <h2>⚡ Технологии</h2>
+        <h2>🎯 Цели проекта</h2>
+        <ul>
+            <li>Создать интеллектуальную систему анализа криптовалют</li>
+            <li>Объединить разные типы анализа в единой платформе</li>
+            <li>Предоставить взвешенные инвестиционные рекомендации</li>
+            <li>Автоматизировать процесс принятия торговых решений</li>
+            <li>Демонстрировать возможности Spring AI framework</li>
+            <li>Создать масштабируемую архитектуру для финансовых приложений</li>
+        </ul>
+    </div>
+
+    <!-- Слайд 4: Архитектура -->
+    <div class="slide">
+        <h2>🏗️ Архитектура системы</h2>
+        <div class="architecture-diagram">
+            <div class="agent-box">
+                <strong>🔍 Technical Agent</strong><br>
+                Анализ трендов и индикаторов
+            </div>
+            <div class="agent-box">
+                <strong>📊 Fundamental Agent</strong><br>
+                Оценка технологий и команды
+            </div>
+            <div class="agent-box">
+                <strong>📈 Sentiment Agent</strong><br>
+                Мониторинг настроений рынка
+            </div>
+        </div>
+        <p>REST Controller → Analysis Service → AI Agents → Spring AI (OpenAI GPT)</p>
+    </div>
+
+    <!-- Слайд 5: Технологический стек -->
+    <div class="slide">
+        <h2>⚡ Технологический стек</h2>
+        <div class="tech-stack">
+            <div class="tech-item"><span class="highlight">Java 17</span></div>
+            <div class="tech-item"><span class="highlight">Spring Boot 3.3.0</span></div>
+            <div class="tech-item"><span class="highlight">Spring AI 1.0.0-M6</span></div>
+            <div class="tech-item"><span class="highlight">OpenRouter</span></div>
+            <div class="tech-item"><span class="highlight">Maven</span></div>
+            <div class="tech-item"><span class="highlight">Docker</span></div>
+            <div class="tech-item"><span class="highlight">JUnit 5</span></div>
+            <div class="tech-item"><span class="highlight">Mockito</span></div>
+        </div>
         <div class="code-block">
-            <p><span class="highlight">HTML5</span> - структура презентации</p>
-            <p><span class="highlight">CSS3</span> - стилизация и анимации</p>
-            <p><span class="highlight">JavaScript</span> - интерактивность</p>
-            <p><span class="highlight">GitHub Pages</span> - хостинг</p>
+            <p><span class="highlight">API:</span> REST endpoints для анализа</p>
+            <p><span class="highlight">AI:</span> OpenAI GPT через Spring AI</p>
+            <p><span class="highlight">Deploy:</span> Docker + Docker Compose</p>
         </div>
     </div>
 
-    <!-- Слайд 4: Функции -->
+    <!-- Слайд 6: Функциональность -->
     <div class="slide">
-        <h2>✨ Возможности</h2>
+        <h2>✨ Основные возможности</h2>
         <ul>
-            <li>Навигация стрелками клавиатуры</li>
-            <li>Индикатор прогресса</li>
-            <li>Счетчик слайдов</li>
-            <li>Стеклянный эффект (glassmorphism)</li>
-            <li>Градиентный фон</li>
+            <li>Технический анализ: RSI, MACD, Moving Averages, объемы торгов</li>
+            <li>Фундаментальный анализ: технологии, команда, tokenomics</li>
+            <li>Анализ настроений: новости, соцсети, Fear & Greed Index</li>
+            <li>Синхронный и асинхронный режимы обработки</li>
+            <li>Retry механизмы и fallback значения</li>
+            <li>Docker контейнеризация с health checks</li>
+            <li>Мониторинг через Spring Boot Actuator</li>
         </ul>
     </div>
 
-    <!-- Слайд 5: Заключение -->
+    <!-- Слайд 7: API и использование -->
+    <div class="slide">
+        <h2>🔗 API Endpoints</h2>
+        <div class="code-block">
+            POST /api/crypto/analyze
+            {
+            "cryptocurrency": "Bitcoin",
+            "timeframe": "1 месяц"
+            }
+
+            GET /api/crypto/analyze/Bitcoin?timeframe=1%20месяц
+
+            POST /api/crypto/analyze/async
+            GET /api/crypto/analyze/status
+        </div>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <strong>Синхронный режим</strong><br>
+                ~15-30 секунд
+            </div>
+            <div class="stat-item">
+                <strong>Асинхронный режим</strong><br>
+                ~8-15 секунд
+            </div>
+        </div>
+    </div>
+
+    <!-- Слайд 8: Деплой и Docker -->
+    <div class="slide">
+        <h2>🐳 Развертывание</h2>
+        <div class="code-block">
+            # Docker Compose
+            docker-compose up --build
+
+            # Локальный запуск
+            mvn spring-boot:run
+
+            # Docker Hub
+            docker run -p 8080:8080 pisklovcor/crypto-multiagent:latest
+        </div>
+        <ul>
+            <li>Multi-stage build для оптимизации размера</li>
+            <li>Health checks для мониторинга состояния</li>
+            <li>Безопасность: непривилегированный пользователь</li>
+            <li>Готовность к production deployment</li>
+        </ul>
+    </div>
+
+    <!-- Слайд 9: Планы развития -->
+    <div class="slide">
+        <h2>🚀 Что планируется сделать</h2>
+        <ul>
+            <li>Добавить поддержку тем оформления</li>
+            <li>Интегрировать редактор слайдов прямо в браузере</li>
+            <li>Реализовать автоматическое воспроизведение</li>
+            <li>Добавить поддержку видео и аудио контента</li>
+            <li>Создать систему заметок для докладчика</li>
+            <li>Разработать мобильное приложение-пульт</li>
+            <li>Добавить экспорт в PDF формат</li>
+        </ul>
+    </div>
+
+    <!-- Слайд 7: Заключение -->
     <div class="slide">
         <h1>🎯 Спасибо за внимание!</h1>
         <p>Исходный код доступен на GitHub</p>
