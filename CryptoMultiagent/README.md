@@ -113,7 +113,10 @@ docker-compose up --build
 docker build -f docker/Dockerfile -t crypto-multiagent .
 
 # Запуск контейнера
-docker run -p 8080:8080 -e OPENAI_API_KEY="your-api-key" crypto-multiagent
+docker run --name crypto-multiagent -p 8080:8080 --env-file .env crypto-multiagent
+
+# Запуск удаленного контейнера (Docker Hub)
+docker run --name crypto-multiagent -p 8080:8080 --env-file .env pisklovcor/crypto-multiagent:latest
 ```
 
 Приложение будет доступно по адресу: `http://localhost:8080`
