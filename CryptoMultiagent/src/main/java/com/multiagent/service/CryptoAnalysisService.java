@@ -156,4 +156,3 @@ public class CryptoAnalysisService {
         return status;
     }
 }
-

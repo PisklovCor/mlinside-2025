@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 @Slf4j
-@SpringBootApplication
 @EnableAsync
+@SpringBootApplication
 public class CryptoMultiAgentApplication {
 
     public static void main(String[] args) {
