@@ -6,12 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import com.multiagent.service.CryptoAnalysisService;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -21,9 +18,6 @@ class GlobalExceptionHandlerTest extends BaseTestConfiguration {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @MockBean
-    private CryptoAnalysisService cryptoAnalysisService;
 
     @Autowired
     private ObjectMapper objectMapper;

@@ -1,6 +1,5 @@
 package com.multiagent.util;
 
-import com.multiagent.util.AnalysisUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
