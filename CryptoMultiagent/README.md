@@ -53,6 +53,7 @@
 - **Spring Boot 3.3.0**
 - **Spring AI 1.0.0-M6**
 - **OpenRouter**
+- **SpringDoc OpenAPI 2.3.0** для документации API
 - **Maven** для сборки
 - **Docker** для контейнеризации
 - **JUnit 5** для тестирования
@@ -157,7 +158,93 @@ GET /api/crypto/analyze/Bitcoin/async?timeframe=2%20недели
 GET /api/crypto/agents/status
 ```
 
-## 📋 Пример ответа
+## 📚 Swagger/OpenAPI Документация
+
+### Доступ к документации
+
+После запуска приложения интерактивная документация API доступна по следующим URL:
+
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
+- **OpenAPI JSON**: http://localhost:8080/api-docs
+
+### Особенности документации
+
+- **Интерактивное тестирование** - возможность выполнять API запросы прямо из браузера
+- **Детальные схемы** - полное описание всех моделей данных
+- **Примеры запросов и ответов** - готовые примеры для каждого эндпоинта
+- **Валидация параметров** - автоматическая проверка входных данных
+- **Коды ответов** - подробное описание всех возможных HTTP статусов
+
+### Конфигурация Swagger
+
+```yaml
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    doc-expansion: none
+    disable-swagger-default-url: true
+  packages-to-scan: com.multiagent.controller
+```
+
+### Модели данных
+
+#### CryptoAnalysisRequest
+```json
+{
+  "cryptocurrency": "Bitcoin",
+  "timeframe": "1 месяц"
+}
+```
+
+#### CryptoAnalysisResponse
+```json
+{
+  "cryptocurrency": "Bitcoin",
+  "agentAnalyses": [
+    {
+      "agentName": "Technical Analysis Agent",
+      "analysis": "Технический анализ показывает восходящий тренд",
+      "recommendation": "ПОКУПАТЬ",
+      "confidence": 0.85
+    }
+  ],
+  "finalRecommendation": "ПОКУПАТЬ",
+  "averageConfidence": 0.85
+}
+```
+
+#### AgentAnalysis
+```json
+{
+  "agentName": "Technical Analysis Agent",
+  "analysis": "Технический анализ показывает восходящий тренд",
+  "recommendation": "ПОКУПАТЬ",
+  "confidence": 0.85
+}
+```
+
+### Эндпоинты в Swagger
+
+1. **POST /api/crypto/analyze** - Синхронный анализ криптовалюты
+2. **POST /api/crypto/analyze/async** - Асинхронный анализ криптовалюты
+3. **GET /api/crypto/analyze/{crypto}** - Анализ по названию (синхронный)
+4. **GET /api/crypto/analyze/{crypto}/async** - Анализ по названию (асинхронный)
+5. **GET /api/crypto/agents/status** - Статус агентов
+
+### Пример использования Swagger UI
+
+1. Откройте http://localhost:8080/swagger-ui.html
+2. Выберите нужный эндпоинт
+3. Нажмите "Try it out"
+4. Заполните параметры запроса
+5. Нажмите "Execute"
+6. Просмотрите ответ и код статуса
+
+## �� Пример ответа
 
 ```json
 {
@@ -232,6 +319,18 @@ server:
 logging:
   level:
     com.multiagent: DEBUG
+
+# Swagger/OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    doc-expansion: none
+    disable-swagger-default-url: true
+  packages-to-scan: com.multiagent.controller
 ```
 
 ### Docker конфигурация
@@ -279,6 +378,13 @@ services:
 GET /actuator/health
 GET /actuator/metrics
 GET /actuator/info
+```
+
+### API Документация
+
+```http
+GET /swagger-ui.html
+GET /api-docs
 ```
 
 ## 🚦 Обработка ошибок
@@ -360,6 +466,22 @@ console.log(`Рекомендация: ${analysis.finalRecommendation}`);
 console.log(`Уверенность: ${analysis.averageConfidence}`);
 ```
 
+### Swagger UI пример
+
+Откройте http://localhost:8080/swagger-ui.html в браузере для интерактивного тестирования API:
+
+1. Выберите эндпоинт `/api/crypto/analyze` (POST)
+2. Нажмите "Try it out"
+3. Введите JSON:
+```json
+{
+  "cryptocurrency": "Ethereum",
+  "timeframe": "2 недели"
+}
+```
+4. Нажмите "Execute"
+5. Просмотрите результат в разделе "Responses"
+
 ### Docker команды
 
 ```bash
@@ -384,6 +506,7 @@ docker-compose up -d
 - API ключ OpenAI требует активной подписки
 - Время ответа зависит от загрузки OpenAI API
 - Некоторые криптовалюты могут быть неизвестны модели
+- Swagger UI может не отображаться при блокировке CORS в браузере
 
 ## 📚 Дополнительные ресурсы
 
